@@ -1,6 +1,6 @@
 # DeepResearch 部署文档
 
-> **快速导航**: [文档索引](../index.rst) | [项目简介](../README_Zh.md) | [用户手册](../user_guide/user_guide.md) | [API文档](../api/api.md)
+> **快速导航**: [文档索引](../index.rst) | [用户手册](../user_guide/user_guide.md) | [API文档](../api/api.md)
 
 ## 环境要求
 
@@ -101,7 +101,7 @@ python -m deepresearch.run "人工智能的发展趋势"
 ### 2. 作为模块导入
 
 ```python
-from src.deepresearch.run import call_agent
+from deepresearch.run import call_agent
 from langchain_core.messages import HumanMessage
 
 messages = [
@@ -238,4 +238,4 @@ pip uninstall -e DeepResearch
 
 ---
 
-**导航**: [文档索引](../index.rst) | [项目简介](../README_Zh.md) | [用户手册](../user_guide/user_guide.md) | [API文档](../api/api.md) | [架构设计](../architecture/architecture.md)
+**导航**: [文档索引](../index.rst) | [用户手册](../user_guide/user_guide.md) | [API文档](../api/api.md) | [架构设计](../architecture/architecture.md)

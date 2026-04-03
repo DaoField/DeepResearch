@@ -10,13 +10,16 @@
 [![License](https://img.shields.io/badge/license-apache2.0-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/github/v/release/iflytek/DeepResearch)](https://github.com/iflytek/DeepResearch/releases)
 [![GitHub Stars](https://img.shields.io/github/stars/iflytek/DeepResearch?style=social)](https://github.com/iflytek/DeepResearch/stargazers)
-
-English | [简体中文](doc/README_Zh.md)
 </div>
 
 # Introduction
 
-DeepResearch focuses on solving complex information analysis problems and supports local deployment for individual developers. Through modular context assembly (covering knowledge bases, tool descriptions, and interaction history) and progressive search optimization, it builds an intelligent research workflow of "Task Planning → Tool Calling → Evaluation & Iteration". This workflow effectively alleviates the issues of attention dispersion and information loss when large models process long contexts. Meanwhile, it allows users to introduce custom research workflows, ensuring the output content has thematic focus, comprehensive argumentation, and logical hierarchy.
+DeepResearch is a deep research framework based on the collaborative work of multiple LLMs. It integrates search tools to conduct deep research on topics and ultimately outputs visualized research reports. It focuses on solving complex information analysis problems and supports local deployment for individual developers. Through modular context assembly (covering knowledge bases, tool descriptions, and interaction history) and progressive search optimization, it builds an intelligent research workflow of "Task Planning → Tool Calling → Evaluation & Iteration". This workflow effectively alleviates the issues of attention dispersion and information loss when large models process long contexts. Meanwhile, it allows users to introduce custom research workflows, ensuring the output content has thematic focus, comprehensive argumentation, and logical hierarchy.
+
+## Project Information
+- **Version**: 1.1.1
+- **Author**: CzChu <czchu2@iflytek.com>
+- **Python Requirement**: >=3.10, <4.0
 
 **Features:**
 - Delivers high-quality results without requiring model customization.

@@ -65,6 +65,7 @@ doc = [
     "myst-nb",
     "markdown-it-py",
     "linkify-it-py",
+    "sphinx-design",
 ]
 
 dev = [

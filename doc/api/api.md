@@ -1,6 +1,6 @@
 # DeepResearch API 文档
 
-> **快速导航**: [文档索引](../index.rst) | [项目简介](../README_Zh.md) | [用户手册](../user_guide/user_guide.md) | [部署文档](../deployment/deployment.md) | [架构设计](../architecture/architecture.md)
+> **快速导航**: [文档索引](../index.rst) | [用户手册](../user_guide/user_guide.md) | [部署文档](../deployment/deployment.md) | [架构设计](../architecture/architecture.md)
 
 ## 概述
 
@@ -183,4 +183,4 @@ for message in graph.stream(input=state, config=config, stream_mode="values"):
 
 ---
 
-**导航**: [文档索引](../index.rst) | [项目简介](../README_Zh.md) | [用户手册](../user_guide/user_guide.md) | [部署文档](../deployment/deployment.md) | [架构设计](../architecture/architecture.md)
+**导航**: [文档索引](../index.rst) | [用户手册](../user_guide/user_guide.md) | [部署文档](../deployment/deployment.md) | [架构设计](../architecture/architecture.md)

@@ -12,7 +12,6 @@ import sys
 project = 'DeepResearch'
 copyright = '2026, iFLYTEK'
 author = 'iFLYTEK'
-release = '1.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -22,6 +21,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'myst_parser',
     'sphinxcontrib.mermaid',
+    'sphinx_design',
 ]
 
 templates_path = ['_templates']

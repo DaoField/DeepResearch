@@ -1,6 +1,6 @@
 # DeepResearch 用户操作手册
 
-> **快速导航**: [文档索引](../index.rst) | [项目简介](../README_Zh.md) | [部署文档](../deployment/deployment.md) | [API文档](../api/api.md)
+> **快速导航**: [文档索引](../index.rst) | [部署文档](../deployment/deployment.md) | [API文档](../api/api.md)
 
 ## 系统简介
 
@@ -44,7 +44,7 @@ python -m deepresearch.run "人工智能的发展趋势"
 #### 2.2 作为模块导入
 
 ```python
-from src.deepresearch.run import call_agent
+from deepresearch.run import call_agent
 from langchain_core.messages import HumanMessage
 
 messages = [
@@ -197,4 +197,4 @@ await call_agent(messages=messages, max_depth=3, save_as_html=False)
 
 ---
 
-**导航**: [文档索引](../index.rst) | [项目简介](../README_Zh.md) | [部署文档](../deployment/deployment.md) | [API文档](../api/api.md) | [架构设计](../architecture/architecture.md)
+**导航**: [文档索引](../index.rst) | [部署文档](../deployment/deployment.md) | [API文档](../api/api.md) | [架构设计](../architecture/architecture.md)

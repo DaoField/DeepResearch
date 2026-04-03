@@ -5,6 +5,8 @@ This file provides guidance to Qoder (qoder.com) when working with code in this 
 > **项目来源**: [iflytek/DeepResearch](https://github.com/iflytek/DeepResearch)
 > **许可证**: Apache 2.0 License
 > **版权**: © 2026 iFLYTEK CO.,LTD.
+> **版本**: 1.1.1
+> **作者**: CzChu <czchu2@iflytek.com>
 
 ---
 
@@ -24,7 +26,7 @@ This file provides guidance to Qoder (qoder.com) when working with code in this 
 
 ### 1.1 项目简介
 
-DeepResearch 是一个基于**渐进式搜索和交叉评估**的轻量级深度研究框架，专注于解决复杂信息分析问题，并支持个人开发者本地部署。
+DeepResearch 是一个基于**多个 LLM 协作**的深度研究框架，集成搜索工具对主题进行深度研究，最终输出可视化研究报告。它是一个基于**渐进式搜索和交叉评估**的轻量级深度研究框架，专注于解决复杂信息分析问题，并支持个人开发者本地部署。
 
 ### 1.2 核心特性
 

@@ -3,14 +3,14 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-DeepResearch documentation
+DeepResearch
 ==========================
 
 .. toctree::
    :maxdepth: 2
    :caption: 入门指南
 
-   README_Zh
+   intro
    README_SPHINX
    user_guide/user_guide
    deployment/deployment
@@ -37,5 +37,4 @@ DeepResearch documentation
    CONTENT_ANALYSIS_REPORT
    assessment_report
    deepresearch_technical_analysis_report
-   REFACTORING_COMPARISON
 
