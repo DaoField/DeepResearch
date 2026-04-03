@@ -853,7 +853,7 @@ _html_template = '''\
         async function ensureEchartsLoaded() {
             if (typeof window.echarts !== 'undefined') return;
             const cdns = [    
-				'https://https://gcore.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js',
+				'https://gcore.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js',
                 'https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js',
                 'https://unpkg.com/echarts@5.4.3/dist/echarts.min.js'
             ];

@@ -4,6 +4,7 @@
 import json
 import os
 import time
+import random
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -384,9 +385,11 @@ class Client:
                 if query.max_page_number > 0 and current_query.page_number >= query.max_page_number:
                     break
 
-                # Throttle if needed
+                # Throttle with exponential backoff + jitter to avoid API rate limiting
+                # Uses capped exponential backoff: min(base * 2^attempt + jitter, max_delay)
                 if throttle_duration > 0:
-                    time.sleep(throttle_duration)
+                    _backoff = min(throttle_duration * (2 ** min(results.index(result_page), 5)), 30.0) + random.uniform(0, 1)
+                    time.sleep(_backoff)
 
             except Exception as e:
                 result_page.error = str(e)

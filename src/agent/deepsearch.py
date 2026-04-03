@@ -7,6 +7,8 @@ import re
 import json
 import traceback
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 import json_repair
 
@@ -139,7 +141,8 @@ class DeepSearch:
                 return []
             search_query = self._search_query_re.findall(text)
             return search_query
-        except:
+        except (ValueError, KeyError, json.JSONDecodeError) as e:
+            logger.warning(f'Failed to generate search query: {e}')
             return []
 
     def _judge_query(self, query:str) -> List[Judge]:
@@ -167,12 +170,27 @@ class DeepSearch:
 
     def _search_all(self, query:List[str]) -> Dict[str, List[search.SearchResult]]:
         search_result: Dict[str, List[search.SearchResult]] = {}
-        for q in query:
+        if not query:
+            return search_result
+
+        # Parallel search with bounded concurrency to avoid API rate limiting
+        max_workers = min(len(query), 5)
+        pre_knowledge_lock = threading.Lock()
+
+        def _single_search(q: str) -> Tuple[str, List[search.SearchResult]]:
             colored_print(f'Searching: {q}', color="purple")
-            search_result[q] = self._search_client.search(q, self._search_top_n)
-            for result in search_result[q]:
+            results = self._search_client.search(q, self._search_top_n)
+            for result in results:
                 colored_print(f'{result.title} -- ', color="cyan", end="")
                 colored_print(result.url, color="blue", underline=True)
+            return (q, results)
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_map = {executor.submit(_single_search, q): q for q in query}
+            for future in as_completed(future_map):
+                q, results = future.result()
+                search_result[q] = results
+
         return search_result
 
     def _extract_all_knowledge(self, outline:str, search_results:Dict[str,List[search.SearchResult]]) -> List[Knowledge]:
@@ -347,10 +365,11 @@ class DeepSearch:
                 try:
                     num = str(id)
                     result.append(num)
-                except:
+                except (ValueError, TypeError):
                     continue
             return result
-        except:
+        except (ValueError, TypeError, json.JSONDecodeError) as e:
+            logger.debug(f'Failed to parse id array: {e}')
             return []
 
     def _load_id_array(self, ids:object) -> List[int]:
@@ -366,10 +385,11 @@ class DeepSearch:
                 try:
                     num = int(str(id))
                     result.append(num)
-                except:
+                except (ValueError, TypeError):
                     continue
             return result
-        except:
+        except (ValueError, TypeError, json.JSONDecodeError) as e:
+            logger.debug(f'Failed to load id array: {e}')
             return []
 
 if __name__ == '__main__':

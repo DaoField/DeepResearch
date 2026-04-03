@@ -21,6 +21,9 @@ from src.tools.md2html import markdown2html
 
 logger = logging.getLogger(__name__)
 
+# Pre-compiled regex for reference pattern replacement (used in stream processing loop)
+_REF_PATTERN = re.compile(r"(\[\^[^\[\]]+\] *)+")
+
 def generate_node(state: ReportState):
 
     outline = state.get("outline")
@@ -82,8 +85,8 @@ def generate_node(state: ReportState):
                 output_strs = content_processor.process_content(content)
                 if output_strs:
                     for output_str in output_strs:
-                        pattern = re.compile(r"(\[\^[^\[\]]+\] *)+")
-                        output_str = pattern.sub(lambda m: ref_replace(m.group(0)), output_str)
+                        # Use pre-compiled regex (module-level _REF_PATTERN) to avoid recompilation per chunk
+                        output_str = _REF_PATTERN.sub(lambda m: ref_replace(m.group(0)), output_str)
                         chapter_report += output_str
                         colored_print(output_str, color="green", end="")
         colored_print('\n', color="green")

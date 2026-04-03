@@ -1,6 +1,13 @@
 # Copyright (c) 2025 iFLYTEK CO.,LTD.
 # SPDX-License-Identifier: Apache 2.0 License
 import re
+from functools import lru_cache
+
+
+@lru_cache(maxsize=128)
+def _compile_xml_tag_regex(tag: str) -> re.Pattern:
+    """Cache compiled regex patterns for XML tag extraction to avoid recompilation on each call."""
+    return re.compile(rf'<{tag}>(.*?)</{tag}>', re.DOTALL | re.IGNORECASE)
 
 
 def extract_xml_content(xml_str: str, tag: str) -> list[str]:
@@ -13,10 +20,8 @@ def extract_xml_content(xml_str: str, tag: str) -> list[str]:
     return:
         If the content within the tag is not found, return None
     """
-
-    matches = re\
-        .compile(rf'<{tag}>(.*?)</{tag}>', re.DOTALL | re.IGNORECASE)\
-        .findall(xml_str)
+    pattern = _compile_xml_tag_regex(tag)
+    matches = pattern.findall(xml_str)
     if matches:
         return [match.strip() for match in matches]
     return None

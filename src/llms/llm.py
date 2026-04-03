@@ -2,12 +2,41 @@
 # SPDX-License-Identifier: Apache 2.0 License
 
 from typing import Generator, Union, Dict, List
+from functools import lru_cache
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
 from langchain_deepseek import ChatDeepSeek
 
 from src.config.llms_config import LLMType, llm_configs
-# Cache storage for LLM instances - key includes both type and streaming mode
-_llm_cache: Dict[tuple[LLMType, bool, int], ChatDeepSeek] = {}
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Maximum number of cached LLM instances (prevents unbounded memory growth)
+_MAX_LLM_CACHE_SIZE = 24
+
+
+def _make_llm_instance(llm_type: LLMType,
+                       streaming: bool = False,
+                       max_tokens: int = 8192) -> ChatDeepSeek:
+    """
+    Factory function to create a new LLM instance. Wrapped with lru_cache for automatic eviction.
+    Cache key is the tuple (llm_type, streaming, max_tokens).
+    """
+    try:
+        llm_config = llm_configs[llm_type]
+    except KeyError as e:
+        raise KeyError(f"LLM configuration for '{llm_type}' not found") from e
+
+    config_dict = llm_config.__dict__.copy()
+    config_dict["streaming"] = streaming
+    config_dict["max_tokens"] = max_tokens
+    config_dict["temperature"] = 0.6
+
+    return ChatDeepSeek(**config_dict)
+
+
+# Apply LRU cache to the factory function - auto-evicts least recently used when cache is full
+_cached_make_llm_instance = lru_cache(maxsize=_MAX_LLM_CACHE_SIZE)(_make_llm_instance)
 
 
 def _get_llm_instance(llm_type: LLMType,
@@ -15,6 +44,7 @@ def _get_llm_instance(llm_type: LLMType,
                       max_tokens: int = 8192) -> ChatDeepSeek:
     """
     Retrieves a cached ChatOpenAI instance or creates a new one with specified parameters.
+    Uses LRU eviction policy to prevent unbounded memory growth (max 24 instances).
 
     Args:
         llm_type: Type of LLM to retrieve (must be defined in LLMType)
@@ -27,28 +57,7 @@ def _get_llm_instance(llm_type: LLMType,
     Raises:
         KeyError: If specified LLMType has no configuration
     """
-    # Create composite cache key using both type and streaming mode
-    cache_key = (llm_type, streaming, max_tokens)
-
-    if cache_key in _llm_cache:
-        return _llm_cache[cache_key]
-
-    try:
-        llm_config = llm_configs[llm_type]
-    except KeyError as e:
-        raise KeyError(f"LLM configuration for '{llm_type}' not found") from e
-
-    # Create configuration dictionary from base config
-    config_dict = llm_config.__dict__.copy()
-
-    # Explicitly set streaming mode based on parameter (overrides config if present)
-    config_dict["streaming"] = streaming
-    config_dict["max_tokens"] = max_tokens
-    config_dict["temperature"] = 0.6
-
-    llm_instance = ChatDeepSeek(**config_dict)
-    _llm_cache[cache_key] = llm_instance
-    return llm_instance
+    return _cached_make_llm_instance(llm_type, streaming, max_tokens)
 
 
 def llm(
@@ -93,7 +102,7 @@ def _stream_llm_response(llm: ChatDeepSeek, messages: List[Union[HumanMessage, A
             content = chunk.content
             yield reasoning_content, content
     except Exception as e:
-        print(f"call sparkapi error:{e}")
+        logger.error(f"LLM streaming error: {e}")
 
 
 def _non_stream_llm_response(llm: ChatDeepSeek, messages: List[Union[HumanMessage, AIMessage, SystemMessage]]) -> str:
@@ -110,7 +119,7 @@ def _non_stream_llm_response(llm: ChatDeepSeek, messages: List[Union[HumanMessag
     try:
         response = llm.invoke(messages)
     except Exception as e:
-        print(f"call sparkapi error:{e}")
+        logger.error(f"LLM invoke error: {e}")
         return ""
     reasoning_content = response.additional_kwargs.get("reasoning_content","")
     content = response.content

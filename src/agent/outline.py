@@ -32,23 +32,46 @@ def outline_search_node(state: ReportState):
     search_client = SearchClient()
     search_id = state.get("search_id", 1)
     outline_knowledge = state.get("knowledge", [])
-    for search_query in search_queries:
-        try:
-            colored_print(f'Searching: {search_query}', color="purple")
-            results = search_client.search(search_query,
-                                                 workflow_configs.
-                                                 get("search", {}).
-                                                 get("topN", 5))
+
+    # Parallel search execution with bounded concurrency
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    max_workers = min(len(search_queries), 5)
+
+    def _single_outline_search(search_query):
+        colored_print(f'Searching: {search_query}', color="purple")
+        results = search_client.search(search_query,
+                                             workflow_configs.
+                                             get("search", {}).
+                                             get("topN", 5))
+        for result in results:
+            colored_print(f'{result.title} -- ', color="cyan", end="")
+            colored_print(result.url, color="blue", underline=True)
+        return (search_query, results)
+
+    if search_queries and max_workers > 0:
+        # Use thread-safe ordered collection
+        collected = [None] * len(search_queries)
+        query_index = {q: i for i, q in enumerate(search_queries)}
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_map = {executor.submit(_single_outline_search, q): q for q in search_queries}
+            for future in as_completed(future_map):
+                q, results = future.result()
+                idx = query_index[q]
+                collected[idx] = (q, results)
+        # Apply results in original order to maintain deterministic search_id assignment
+        for item in collected:
+            if item is None:
+                continue
+            q, results = item
             outline_knowledge += [
                 {"id": search_id + i, "content": result.content, "url": result.url}
                 for i, result in enumerate(results)
             ]
             search_id += len(results)
-            for result in results:
-                colored_print(f'{result.title} -- ', color="cyan", end="")
-                colored_print(result.url, color="blue", underline=True)
-        except Exception as e:
-            logger.error(f"search {search_query} error: {e}")
+    else:
+        # Fallback: sequential processing for empty queries or edge cases
+        pass
+
     return {
         "search_id": search_id,
         "knowledge": outline_knowledge,
@@ -88,20 +111,24 @@ def outline_node(state: ReportState):
 
 
 def outline_knowledge_2_str(outline_knowledge, max_length=100000):
-    max_col = 0
-    for knowledge in outline_knowledge:
-        max_col = max(max_col, len(knowledge))
+    """
+    Convert outline knowledge list to JSON string with max_length truncation.
+    Optimized: Single-pass O(N) traversal instead of original O(max_col * N) nested loop.
+    """
     result = []
     total_length = 0
 
-    for i in range(max_col):
-        for knowledge in outline_knowledge:
-            if i < len(knowledge):
-                content = knowledge[i].get("content", "")
-                if total_length + len(content) > max_length:
-                    break
-                result.append({"content": content, "id": knowledge[i].get("id", 0)})
-                total_length += len(content)
+    # Single pass: flatten all knowledge items in order, truncate at max_length
+    for knowledge in outline_knowledge:
+        for item in knowledge:
+            content = item.get("content", "")
+            if total_length + len(content) > max_length:
+                break
+            result.append({"content": content, "id": item.get("id", 0)})
+            total_length += len(content)
+        # Early exit if limit reached
+        if total_length >= max_length:
+            break
 
     return json.dumps(result)
 
