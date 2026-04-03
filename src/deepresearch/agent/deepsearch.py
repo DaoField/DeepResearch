@@ -12,10 +12,10 @@ import threading
 
 import json_repair
 
-from src.tools import search
-from src.llms.llm import llm
-from src.prompts.template import apply_prompt_template
-from src.utils.print_util import colored_print
+from deepresearch.tools import search
+from deepresearch.llms.llm import llm
+from deepresearch.prompts.template import apply_prompt_template
+from deepresearch.utils.print_util import colored_print
 import logging
 
 logger = logging.getLogger(__name__)

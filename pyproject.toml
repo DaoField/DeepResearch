@@ -5,7 +5,7 @@ description = "Typist is a deep research framework based on the collaborative wo
 authors = ["CzChu <czchu2@iflytek.com>"]
 license = "https://github.com/iflytek/DeepResearch/blob/main/LICENSE"
 readme = "README.md"
-package-mode = false
+packages = [{ include = "deepresearch", from = "src" }]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
@@ -54,6 +54,12 @@ aiohttp = "^3.10"
 lxml = "^6"
 pytest = "^8.3"
 mistune = "^3.1.4"
+
+[tool.poetry.group.dev.dependencies]
+invoke = "^2.2"
+black = "^24.0"
+flake8 = "^7.0"
+mypy = "^1.0"
 
 [[tool.poetry.source]]
 name = "aliyun"

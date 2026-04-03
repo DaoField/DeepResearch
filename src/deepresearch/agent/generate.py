@@ -10,14 +10,14 @@ import re
 from langchain_core.runnables import RunnableConfig
 
 from .message import ReportState
-from src.llms.llm import llm
+from deepresearch.llms.llm import llm
 from datetime import datetime
 import time
 
-from src.prompts import apply_prompt_template
-from src.utils.parse_model_res import extract_xml_content
-from src.utils.print_util import colored_print
-from src.tools.md2html import markdown2html
+from deepresearch.prompts import apply_prompt_template
+from deepresearch.utils.parse_model_res import extract_xml_content
+from deepresearch.utils.print_util import colored_print
+from deepresearch.tools.md2html import markdown2html
 
 logger = logging.getLogger(__name__)
 

@@ -8,8 +8,8 @@ from langchain_core.runnables import RunnableConfig
 
 from .message import ReportState
 from .deepsearch import DeepSearch, DeepSearchResult
-from src.config.workflow_config import workflow_configs
-from src.tools.search import SearchResult
+from deepresearch.config.workflow_config import workflow_configs
+from deepresearch.tools.search import SearchResult
 
 
 def learning_node(state: ReportState, config: RunnableConfig):

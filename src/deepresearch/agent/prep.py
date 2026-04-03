@@ -3,13 +3,13 @@
 from langchain_core.runnables import RunnableConfig
 
 from .message import ReportState
-from src.llms.llm import llm
-from src.prompts.template import apply_prompt_template
-from src.utils import parse_model_res
-from src.utils.print_util import colored_print
+from deepresearch.llms.llm import llm
+from deepresearch.prompts.template import apply_prompt_template
+from deepresearch.utils import parse_model_res
+from deepresearch.utils.print_util import colored_print
 from langgraph.types import Command
 from langchain_core.messages import AIMessage, HumanMessage
-from src.data.category import get_analysis_data
+from deepresearch.data.category import get_analysis_data
 import logging
 from datetime import datetime
 

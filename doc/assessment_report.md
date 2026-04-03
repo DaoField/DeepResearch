@@ -16,7 +16,7 @@ DeepResearch/
 │   ├── tools/          # 工具模块
 │   ├── utils/          # 工具函数
 │   └── run.py          # 主入口
-├── docs/               # 文档
+├── doc/               # 文档
 │   ├── guide/          # 指南文档
 │   ├── api/            # API 文档
 │   ├── examples/       # 示例文档
@@ -116,7 +116,7 @@ DeepResearch/
 ### 4.1 文档优化实施步骤
 
 1. **创建目录结构**
-   - 执行 `New-Item -Path "docs\guide" -ItemType Directory -Force` 等命令创建子目录
+   - 执行 `New-Item -Path "doc\guide" -ItemType Directory -Force` 等命令创建子目录
 
 2. **迁移现有文档**
    - 将现有 README 内容拆分到相应的子目录中

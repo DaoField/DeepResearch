@@ -1,6 +1,6 @@
 <div align="center">
   <img 
-      src="docs/LOGO.svg" 
+      src="doc/LOGO.svg" 
       alt="Logo" 
       style="vertical-align: middle; margin-right: 0;" 
     >
@@ -11,7 +11,7 @@
 [![Version](https://img.shields.io/github/v/release/iflytek/DeepResearch)](https://github.com/iflytek/DeepResearch/releases)
 [![GitHub Stars](https://img.shields.io/github/stars/iflytek/DeepResearch?style=social)](https://github.com/iflytek/DeepResearch/stargazers)
 
-English | [简体中文](docs/README_Zh.md)
+English | [简体中文](doc/README_Zh.md)
 </div>
 
 # Introduction
@@ -27,7 +27,7 @@ DeepResearch focuses on solving complex information analysis problems and suppor
 **Framework:**
 <div align="center">
    <img 
-      src="docs/framework.png" 
+      src="doc/framework.png" 
       alt="framework" 
       style="width: 600px; height: 450px; vertical-align: middle; margin-right: 0;" 
     >
@@ -79,7 +79,7 @@ Enjoy the moment.
    ```
 <div align="center">
    <img 
-      src="docs/start.png" 
+      src="doc/start.png" 
       alt="framework" 
       style="vertical-align: middle; margin-right: 0;" 
     >

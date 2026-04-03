@@ -8,8 +8,8 @@ import asyncio
 from mcp.client.session import ClientSession
 from mcp.client.sse import sse_client
 
-from src.config.search_config import search_config
-from src.tools._search import SearchClient, SearchResult
+from deepresearch.config.search_config import search_config
+from deepresearch.tools._search import SearchClient, SearchResult
 
 
 class JinaMcpSearchClient:

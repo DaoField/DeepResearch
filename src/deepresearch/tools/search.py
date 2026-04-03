@@ -4,10 +4,10 @@
 from typing import *
 import asyncio
 
-from src.config.search_config import search_config
-from src.tools import _search
-from src.tools._jina import JinaSearchClient
-from src.tools._tavily import TavilySearchClient
+from deepresearch.config.search_config import search_config
+from deepresearch.tools import _search
+from deepresearch.tools._jina import JinaSearchClient
+from deepresearch.tools._tavily import TavilySearchClient
 
 SearchResult = _search.SearchResult
 

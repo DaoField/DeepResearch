@@ -6,8 +6,8 @@ from typing import *
 import requests
 import logging
 
-from src.config.search_config import search_config
-from src.tools._search import SearchClient, SearchResult
+from deepresearch.config.search_config import search_config
+from deepresearch.tools._search import SearchClient, SearchResult
 
 logger = logging.getLogger(__name__)
 

@@ -6,7 +6,7 @@ from functools import lru_cache
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_deepseek import ChatDeepSeek
 
-from src.config.llms_config import LLMType, llm_configs
+from deepresearch.config.llms_config import LLMType, llm_configs
 import logging
 
 logger = logging.getLogger(__name__)
