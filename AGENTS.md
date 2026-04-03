@@ -4,7 +4,7 @@ This file provides guidance to Qoder (qoder.com) when working with code in this 
 
 > **项目来源**: [iflytek/DeepResearch](https://github.com/iflytek/DeepResearch)
 > **许可证**: Apache 2.0 License
-> **版权**: © 2025 iFLYTEK CO.,LTD.
+> **版权**: © 2026 iFLYTEK CO.,LTD.
 
 ---
 
@@ -67,10 +67,10 @@ poetry run python -m src.run
 poetry run pytest
 
 # Run specific test file
-poetry run pytest src/agent/test_agent.py
+poetry run pytest tests/unit/agent/test_agent.py
 
 # Run specific test function
-poetry run pytest src/agent/test_agent.py::test_function_name
+poetry run pytest tests/unit/agent/test_agent.py::test_function_name
 
 # Run tests with coverage
 poetry run pytest --cov=src
@@ -230,7 +230,7 @@ poetry run pytest --cov=src
 
 ## 4. 核心模块详解
 
-### 4.1 Agent 模块 (`src/agent/`)
+### 4.1 Agent 模块 (`src/deepresearch/agent/`)
 
 Agent 模块是整个系统的核心，负责构建和管理基于 LangGraph 的状态机工作流。
 
@@ -244,7 +244,7 @@ Agent 模块是整个系统的核心，负责构建和管理基于 LangGraph 的
 | `deepsearch.py` | 多轮搜索迭代 | `DeepSearch` |
 | `generate.py` | 报告生成 | `generate_node`, `ContentProcessor` |
 
-### 4.2 LLM 模块 (`src/llms/`)
+### 4.2 LLM 模块 (`src/deepresearch/llms/`)
 
 提供统一的 LLM 调用接口，支持多种模型和流式输出。
 
@@ -257,7 +257,7 @@ def llm(
 ) -> Union[str, Iterator]
 ```
 
-### 4.3 Tools 模块 (`src/tools/`)
+### 4.3 Tools 模块 (`src/deepresearch/tools/`)
 
 搜索工具的抽象和实现层。
 
@@ -279,7 +279,7 @@ def llm(
 └─────────────────┘
 ```
 
-### 4.4 Config 模块 (`src/config/`)
+### 4.4 Config 模块 (`src/deepresearch/config/`)
 
 集中管理所有配置，支持 TOML 格式。
 
@@ -289,7 +289,7 @@ def llm(
 | `search_config.py` | 搜索引擎配置 (Jina/Tavily API密钥) |
 | `workflow_config.py` | 工作流参数配置 (搜索深度、结果数量等) |
 
-### 4.5 Prompts 模块 (`src/prompts/`)
+### 4.5 Prompts 模块 (`src/deepresearch/prompts/`)
 
 提示模板管理，支持变量注入。
 
@@ -312,7 +312,7 @@ prompts/
     └── rewrite.py   # 需求重写
 ```
 
-### 4.6 Data 模块 (`src/data/`)
+### 4.6 Data 模块 (`src/deepresearch/data/`)
 
 定义分析类型的分类体系。
 
@@ -323,7 +323,7 @@ class AnalysisTag(Enum):
     COMPREHENSIVE = "Comprehensive Analysis"  # 综合分析
 ```
 
-### 4.7 MCP Client 模块 (`src/mcp_client/`)
+### 4.7 MCP Client 模块 (`src/deepresearch/mcp_client/`)
 
 MCP (Model Context Protocol) 客户端，用于学术搜索。
 
@@ -504,7 +504,7 @@ class SearchResult:
 ### 6.2 LLM 配置 (llms.toml)
 
 ```toml
-# 文件路径: src/config/llms.toml
+# 文件路径: config/llms.toml
 
 [basic]
 api_base="https://maas-api.cn-huabei-1.xf-yun.com/v1"
@@ -552,7 +552,7 @@ api_key="sk-xxxxxx"
 ### 6.3 搜索配置 (search.toml)
 
 ```toml
-# 文件路径: src/config/search.toml
+# 文件路径: config/search.toml
 
 [search]
 engine = "jina"              # 搜索引擎: jina 或 tavily
@@ -564,7 +564,7 @@ timeout = 30                 # 超时时间(秒)
 ### 6.4 工作流配置 (workflow.toml)
 
 ```toml
-# 文件路径: src/config/workflow.toml
+# 文件路径: config/workflow.toml
 
 [search]
 topN = 5        # 每轮搜索返回的结果数量
@@ -580,9 +580,9 @@ save_as_html = true   # 是否保存为HTML格式
 ### 7.1 添加新的搜索工具
 
 ```python
-# 1. 在 src/tools/ 下创建新文件 _custom_search.py
+# 1. 在 src/deepresearch/tools/ 下创建新文件 _custom_search.py
 from typing import List
-from src.tools._search import SearchClient, SearchResult
+from src.deepresearch.tools._search import SearchClient, SearchResult
 
 class CustomSearchClient(SearchClient):
     def __init__(self, api_key: str):
@@ -595,11 +595,11 @@ class CustomSearchClient(SearchClient):
         # ... 调用自定义API并转换结果
         return results
 
-# 2. 修改 src/tools/search.py 添加新引擎支持
+# 2. 修改 src/deepresearch/tools/search.py 添加新引擎支持
 if search_config.engine == "custom":
     self._client = CustomSearchClient(api_key=search_config.custom_api_key)
 
-# 3. 修改 src/config/search.toml
+# 3. 修改 config/search.toml
 [search]
 engine = "custom"
 custom_api_key = "your-key"
@@ -608,7 +608,7 @@ custom_api_key = "your-key"
 ### 7.2 添加新的提示模板
 
 ```python
-# 1. 在 src/prompts/your_module/ 下创建模板文件 your_template.py
+# 1. 在 src/deepresearch/prompts/your_module/ 下创建模板文件 your_template.py
 
 SYSTEM_PROMPT = """你是一个专业的分析助手..."""
 
@@ -620,14 +620,14 @@ PROMPT = """
 请以Markdown格式输出。
 """
 
-# 2. 在 src/prompts/template.py 添加目录扫描
+# 2. 在 src/deepresearch/prompts/template.py 添加目录扫描
 PROMPTS_DIRS = [
     # ... 现有目录
     os.path.join(os.path.dirname(__file__), "your_module"),
 ]
 
 # 3. 使用模板
-from src.prompts.template import apply_prompt_template
+from src.deepresearch.prompts.template import apply_prompt_template
 
 messages = apply_prompt_template(
     prompt_name="your_module/your_template",
@@ -641,9 +641,9 @@ messages = apply_prompt_template(
 ### 7.3 自定义工作流节点
 
 ```python
-# 在 src/agent/ 下创建新节点文件 custom_node.py
+# 在 src/deepresearch/agent/ 下创建新节点文件 custom_node.py
 from typing import Dict, Any
-from .message import ReportState
+from src.deepresearch.agent.message import ReportState
 from langgraph.types import Command
 
 def custom_node(state: ReportState) -> Command:
@@ -671,7 +671,7 @@ def custom_node(state: ReportState) -> Command:
         }
     )
 
-# 在 agent.py 中注册节点
+# 在 src/deepresearch/agent/agent.py 中注册节点
 def build_agent():
     workflow = StateGraph(ReportState)
     # ... 添加其他节点

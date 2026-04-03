@@ -54,6 +54,9 @@ aiohttp = "^3.10"
 lxml = "^6"
 pytest = "^8.3"
 mistune = "^3.1.4"
+sphinx = "^7.3"
+sphinx-markdown-tables = "^0.0.17"
+sphinxcontrib-mermaid = "^0.7.1"
 
 [tool.poetry.group.dev.dependencies]
 invoke = "^2.2"

@@ -69,8 +69,21 @@ def load_prompt_templates() -> Dict[str, str]:
     return prompt_templates
 
 
-# Global storage for all loaded prompt templates
-PROMPT_TEMPLATES: Dict[str, str] = load_prompt_templates()
+# Global storage for all loaded prompt templates (lazy loading)
+PROMPT_TEMPLATES: Dict[str, str] = {}
+_PROMPTS_LOADED = False
+
+
+def load_prompt_templates_lazy() -> Dict[str, str]:
+    """
+    Lazily loads prompt templates from specified directories.
+    Only loads templates once when first called.
+    """
+    global PROMPT_TEMPLATES, _PROMPTS_LOADED
+    if not _PROMPTS_LOADED:
+        PROMPT_TEMPLATES = load_prompt_templates()
+        _PROMPTS_LOADED = True
+    return PROMPT_TEMPLATES
 
 
 def apply_prompt_template(
@@ -92,9 +105,12 @@ def apply_prompt_template(
     """
     messages = []
 
+    # Lazy load prompt templates if not already loaded
+    prompt_templates = load_prompt_templates_lazy()
+
     # Process system prompt if available
     system_template_key = f"{prompt_name}_system"
-    system_template = PROMPT_TEMPLATES.get(system_template_key)
+    system_template = prompt_templates.get(system_template_key)
 
     if system_template:
         try:
@@ -103,7 +119,7 @@ def apply_prompt_template(
         except KeyError as e:
             raise ValueError(f"System prompt {prompt_name} missing variable: {str(e)}")
 
-    user_template = PROMPT_TEMPLATES.get(prompt_name)
+    user_template = prompt_templates.get(prompt_name)
     if user_template:
         try:
             user_content = user_template.format_map(state)

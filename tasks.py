@@ -1,5 +1,9 @@
 
 from invoke import task
+from taolib.doc import sites
+
+# 导入文档站点功能
+namespace = sites('doc', target='doc/_build/html')
 
 
 @task
@@ -39,6 +43,7 @@ def clean(c):
         "dist",
         "build",
         "*.egg-info",
+        "doc/_build",
     ]
     for pattern in patterns:
         c.run(f"rm -rf {pattern}", hide=True, warn=True)

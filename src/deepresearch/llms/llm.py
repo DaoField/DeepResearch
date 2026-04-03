@@ -60,6 +60,28 @@ def _get_llm_instance(llm_type: LLMType,
     return _cached_make_llm_instance(llm_type, streaming, max_tokens)
 
 
+# Cache size for LLM responses
+_MAX_RESPONSE_CACHE_SIZE = 100
+
+
+def _message_hash(messages: List[Union[HumanMessage, AIMessage, SystemMessage]]) -> str:
+    """Generate a hash for a list of messages to use as cache key"""
+    return "".join([f"{msg.type}:{msg.content[:200]}" for msg in messages])
+
+
+def _cached_llm_response(llm_type: LLMType, message_hash: str, stream: bool, messages: List[Union[HumanMessage, AIMessage, SystemMessage]]) -> Union[Generator[str, None, None], str]:
+    """Cached LLM response generation"""
+    llm = _get_llm_instance(llm_type, stream)
+    if stream:
+        return _stream_llm_response(llm, messages)
+    else:
+        return _non_stream_llm_response(llm, messages)
+
+
+# Cache for LLM responses
+_response_cache: Dict[tuple, str] = {}
+
+
 def llm(
         llm_type: LLMType,
         messages: List[Union[HumanMessage, AIMessage, SystemMessage]],
@@ -77,11 +99,33 @@ def llm(
         - Generator yielding string chunks if stream=True
         - Complete response string if stream=False
     """
-    llm = _get_llm_instance(llm_type, stream)
-    if stream:
-        return _stream_llm_response(llm, messages)
+    # Only cache non-streaming responses
+    if not stream and messages:
+        # Generate cache key using message hash and llm type
+        message_hash = _message_hash(messages)
+        cache_key = (llm_type, message_hash)
+        
+        # Check if response is in cache
+        if cache_key in _response_cache:
+            return _response_cache[cache_key]
+        
+        # Generate response and cache it
+        response = _cached_llm_response(llm_type, message_hash, stream, messages)
+        
+        # Manage cache size
+        if len(_response_cache) >= _MAX_RESPONSE_CACHE_SIZE:
+            # Remove oldest item (FIFO)
+            oldest_key = next(iter(_response_cache))
+            del _response_cache[oldest_key]
+        
+        _response_cache[cache_key] = response
+        return response
     else:
-        return _non_stream_llm_response(llm, messages)
+        llm = _get_llm_instance(llm_type, stream)
+        if stream:
+            return _stream_llm_response(llm, messages)
+        else:
+            return _non_stream_llm_response(llm, messages)
 
 
 def _stream_llm_response(llm: ChatDeepSeek, messages: List[Union[HumanMessage, AIMessage, SystemMessage]]) -> Generator[tuple[str, str], None, None]:

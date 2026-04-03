@@ -6,7 +6,7 @@
 test paper_mcp_server
 """
 import json
-from deepresearch.mcp import arxiv_search, arxiv_read, pubmed_search, pubmed_read
+from deepresearch.mcp_client.paper_mcp_server import arxiv_search, arxiv_read, pubmed_search, pubmed_read
 
 
 def test_arxiv_search():
