@@ -4,9 +4,12 @@
 from typing import *
 
 import requests
+import logging
 
 from src.config.search_config import search_config
 from src.tools._search import SearchClient, SearchResult
+
+logger = logging.getLogger(__name__)
 
 class JinaSearchClient(SearchClient):
     """Client for searching web using Jina HTTP API"""
@@ -33,27 +36,42 @@ class JinaSearchClient(SearchClient):
             List of SearchResult objects containing search information
         """
         search_results: List[SearchResult] = []
+        if not query or not query.strip():
+            return search_results
+            
         try:
             params = {
-                "q": query,
-                "num": top_n,
+                "q": query.strip(),
+                "num": min(max(top_n, 1), 20),  # 限制范围 1-20
             }
-            response = requests.get(self._url, headers=self._headers, params=params)
+            response = requests.get(
+                self._url, 
+                headers=self._headers, 
+                params=params,
+                timeout=search_config.timeout
+            )
             response.raise_for_status()
             result = response.json()
-            for data in result.get("data", []):
+            for i, data in enumerate(result.get("data", [])):
+                url = data.get("url", "").strip()
+                if not url:  # 跳过无效URL
+                    continue
                 search_results.append(
                     SearchResult(
-                        url=data.get("url", ""),
-                        title=data.get("title", ""),
+                        url=url,
+                        title=data.get("title", "") or "Untitled",
                         summary=data.get("description", ""),
                         content=data.get("content", ""),
                         date=data.get("publishedTime", ""),
+                        id=i
                     )
                 )
+        except requests.exceptions.Timeout:
+            logger.error(f"Jina search timeout for query: {query[:50]}...")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Jina search request error: {e}")
         except Exception as e:
-            print(f"Error in Jina search: {e}")
-            return []
+            logger.error(f"Error in Jina search: {e}")
         return search_results
 
 if __name__ == "__main__":

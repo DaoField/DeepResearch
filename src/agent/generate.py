@@ -65,7 +65,7 @@ def generate_node(state: ReportState):
         chapter_report = ''
 
         level2_chapter.merge_knowledge()
-        knowledge = level2_chapter.merge_knowledge().get_knowledge_str()
+        knowledge = level2_chapter.get_knowledge_str()
         content_processor = ContentProcessor(knowledge)
         for thinking, content in llm(llm_type="report", messages=apply_prompt_template(
                 prompt_name="generate/generate",

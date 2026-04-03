@@ -113,15 +113,22 @@ def outline_node(state: ReportState):
 def outline_knowledge_2_str(outline_knowledge, max_length=100000):
     """
     Convert outline knowledge list to JSON string with max_length truncation.
-    Optimized: Single-pass O(N) traversal instead of original O(max_col * N) nested loop.
+    Optimized: Single-pass O(N) traversal with proper null handling.
     """
+    if not outline_knowledge:
+        return "[]"
+        
     result = []
     total_length = 0
 
     # Single pass: flatten all knowledge items in order, truncate at max_length
     for knowledge in outline_knowledge:
+        if not isinstance(knowledge, list):
+            continue
         for item in knowledge:
-            content = item.get("content", "")
+            if not isinstance(item, dict):
+                continue
+            content = item.get("content", "") or ""
             if total_length + len(content) > max_length:
                 break
             result.append({"content": content, "id": item.get("id", 0)})
@@ -130,7 +137,10 @@ def outline_knowledge_2_str(outline_knowledge, max_length=100000):
         if total_length >= max_length:
             break
 
-    return json.dumps(result)
+    try:
+        return json.dumps(result, ensure_ascii=False)
+    except (TypeError, ValueError):
+        return "[]"
 
 
 markdown_regexp = re.compile(r'(?s)```\s*markdown\n(.*)```')

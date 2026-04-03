@@ -13,33 +13,57 @@ graph = build_agent()
 
 async def call_agent(
         messages: List[Union[HumanMessage, AIMessage]],
-        max_depth: 3,
-        save_as_html: True
+        max_depth: int = 3,
+        save_as_html: bool = True,
+        save_path: str = "./example/report"
 ) -> List[Union[HumanMessage, AIMessage]]:
+    """
+    调用Agent处理消息
+    
+    Args:
+        messages: 消息列表
+        max_depth: 最大搜索深度
+        save_as_html: 是否保存为HTML
+        save_path: 保存路径
+        
+    Returns:
+        更新后的消息列表
+    """
     if not messages:
         raise ValueError("Input could not be empty")
+        
+    # 验证消息类型
+    valid_messages = [m for m in messages if isinstance(m, (HumanMessage, AIMessage))]
+    if not valid_messages:
+        raise ValueError("Messages must contain valid HumanMessage or AIMessage objects")
+        
     state = {
-        "messages": messages
+        "messages": valid_messages
     }
     config = {
         "configurable": {
-            "depth": max_depth,
+            "depth": max(1, min(max_depth, 10)),  # 限制范围 1-10
             "save_as_html": save_as_html,
-            "save_path": "./example/report"
+            "save_path": save_path
         }
     }
     output = ""
-    for message in graph.stream(
-        input=state, config=config, stream_mode="values"
-    ):
-        if isinstance(message, Command):
-            message = message.update
-        if isinstance(message, dict) and "messages" in message:
-            if "output" in message and isinstance(message["output"], dict):
-                if "message" in message["output"]:
-                    output = message["output"]["message"]
-    messages.append(AIMessage(content=output))
-    return messages
+    try:
+        for message in graph.stream(
+            input=state, config=config, stream_mode="values"
+        ):
+            if isinstance(message, Command):
+                message = message.update
+            if isinstance(message, dict) and "messages" in message:
+                if "output" in message and isinstance(message["output"], dict):
+                    if "message" in message["output"]:
+                        output = message["output"]["message"]
+    except Exception as e:
+        print(f"Error during agent execution: {e}")
+        output = f"Error: {str(e)}"
+        
+    valid_messages.append(AIMessage(content=output))
+    return valid_messages
 
 
 async def interactive_agent(max_depth: int = 3, save_as_html: bool = True):

@@ -154,7 +154,7 @@ def clarify_node(state: ReportState):
     ), stream=False)
     if parse_model_res.extract_xml_content(clarify, "query"):
         return Command(
-            goto="outline_sq",
+            goto="outline_search",
         )
     confirm = parse_model_res.extract_xml_content(clarify, "confirm")
     if confirm:
@@ -173,14 +173,20 @@ def clarify_node(state: ReportState):
 
 
 def generic_node(state: ReportState):
+    """通用节点处理函数，用于处理非研究类对话"""
     try:
         response = ""
-        for think, content in llm(llm_type="basic", messages=state.get("messages"), stream=True):
+        messages = state.get("messages", [])
+        if not messages:
+            return {"output": {"message": "No messages to process"}}
+            
+        for think, content in llm(llm_type="basic", messages=messages, stream=True):
             if think:
                 colored_print(think, color="orange", end="")
             if content:
                 colored_print(content, color="green", end="")
                 response += content
-        return {"output": {"message": response}}
+        return {"output": {"message": response or "No response generated"}}
     except Exception as e:
         logger.error(f"An exception occurred during the call to the LLM: {e}")
+        return {"output": {"message": f"Error: {str(e)}"}}

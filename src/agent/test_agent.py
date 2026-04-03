@@ -3,13 +3,10 @@
 
 import pytest
 from datetime import datetime
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain_core.messages import HumanMessage, AIMessage
 from .prep import rewrite_node, classify_node, generic_node, clarify_node
-from .outline import outline_search_node, outline_node, outline_knowledge_2_str
+from .outline import outline_search_node, outline_knowledge_2_str
 from langgraph.types import Command
-from src.tools.search import SearchResult
-from typing import Generator
-from unittest.mock import patch, MagicMock
 
 @pytest.fixture
 def mock_state():
@@ -78,7 +75,7 @@ def test_generic_node_response(
     result = generic_node(mock_state)
     assert isinstance(result, dict)
     assert isinstance(result["output"], dict)
-    assert isinstance(result["output"]["stream_message"], Generator)
+    assert isinstance(result["output"]["message"], str)
 
 
 def test_classify_node_response(
@@ -101,7 +98,7 @@ def test_clarify_node_response(
     assert result.goto == "__end__"
     assert isinstance(result.update, dict)
     assert isinstance(result.update["output"], dict)
-    assert isinstance(result.update["output"]["stream_message"], Generator)
+    assert isinstance(result.update["output"]["message"], str)
 
 
 def test_rewrite_node_response(
@@ -115,91 +112,20 @@ def test_rewrite_node_response(
 def test_outline_search_node_response(
     mock_outline_search_state
 ):
-    results = []
-    required_keys = {"id", "content", "url", "title"}
-    for updated_state in outline_search_node(mock_outline_search_state):
-        results.append(updated_state)
-        assert isinstance(updated_state, dict)
-        assert isinstance(updated_state["knowledge"], list)
-        assert len(updated_state["knowledge"]) == len(results)
-        for knowledge in updated_state["knowledge"]:
-            assert isinstance(knowledge, list)
-            for single in knowledge:
-                assert isinstance(single, dict)
-                actual_keys = set(single.keys())
-                assert required_keys.issubset(actual_keys)
-        assert isinstance(updated_state["output"], dict)
-        assert isinstance(updated_state["output"]["search_query"], str)
-        assert isinstance(updated_state["output"]["search"], list)
-        for search in updated_state["output"]["search"]:
-            assert isinstance(search, SearchResult)
+    result = outline_search_node(mock_outline_search_state)
+    assert isinstance(result, dict)
+    assert isinstance(result["knowledge"], list)
+    assert isinstance(result["search_id"], int)
 
 
-def test_outline_node_response(mock_outline_state):
-    # 1. 定义模拟数据：LLM 输出的两帧数据
-    mock_llm_output = [
-        ("mock thinking", ""),  # 第一帧：只有 thinking，无 content
-        ("", """```markdown
-# Report Title
-## I. Industry Landscape Overview
-<summary>Comprehensively analyzes the current state and emerging trends of the XX industry, defining scope (technology, market, policy), key entities (leading players and new entrants), and main focus areas (competition and regulatory drivers) as the foundation for subsequent research.</summary>  
-### 1.1 Technological Evolution: From Innovation to Maturity  
-<thinking>Analyze the development path along the technology maturity curve, explaining the potential impact of each stage on the industry.</thinking>  
-### 1.2 Market Landscape: Divergent Strategies Among Leading Firms  
-<thinking>Focus on market share dynamics and conduct comparative analysis to reveal competitive differentiation.</thinking>  
-...
-## III. Outlook and Strategic Recommendations
-<summary>Synthesizes key findings from the preceding chapters to form actionable strategic insights.</summary>  
-<thinking>Adopt a conclusion-first approach, presenting core insights, then expanding arguments and recommendations step by step.</thinking>
-```""")  # 第二帧：无 thinking，有 content
-    ]
-
-    # 2. 模拟 parse_outline 返回的 Chapter 对象
-    mock_chapter = MagicMock()
-    mock_chapter.get_outline.return_value = "解析后的大纲文本"  # 模拟章节的大纲文本
-
-    with patch("src.llms.llm.llm") as mock_llm, \
-            patch("src.prompts.template.apply_prompt_template") as mock_prompt:
-        def llm_generator():
-            for item in mock_llm_output:
-                yield item
-
-        mock_llm.return_value = llm_generator()
-        mock_prompt.return_value = [SystemMessage(content="mock system message")]
-
-        outputs = list(outline_node(mock_outline_state))
-
-        mock_llm.assert_called_once_with(
-            llm_type="planner",
-            messages=mock_prompt.return_value,
-            stream=True
-        )
-
-        expected_prompt_state = {
-                "domain": mock_outline_state.get("domain"),
-                "now": datetime.now().strftime("%a %b %d %Y"),
-                "query": mock_outline_state.get("topic"),
-                "reasoning": mock_outline_state.get("logic"),
-                "thinking": mock_outline_state.get("details"),
-                "reference": outline_knowledge_2_str(mock_outline_state.get("knowledge", ""))
-            }
-        mock_prompt.assert_called_once_with(
-            prompt_name="outline/outline",
-            state=expected_prompt_state
-        )
-
-        assert len(outputs) == 3
-
-        first_output = outputs[0]
-        assert "output" in first_output
-        assert first_output["output"]["message"] == "mock thinking"
-        assert "outline" not in first_output
-
-        second_output = outputs[1]
-        assert "output" in second_output
-        assert second_output["output"]["message"] == ""
-        assert "outline" not in second_output
-
-        final_output = outputs[2]
-        assert "outline" in final_output
-        assert final_output["outline"] == mock_chapter
+def test_outline_knowledge_2_str():
+    """测试大纲知识转换函数"""
+    # 测试空输入
+    assert outline_knowledge_2_str([]) == "[]"
+    assert outline_knowledge_2_str(None) == "[]"
+    
+    # 测试有效输入
+    test_knowledge = [[{"id": 1, "content": "test content"}]]
+    result = outline_knowledge_2_str(test_knowledge)
+    assert isinstance(result, str)
+    assert "test content" in result

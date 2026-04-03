@@ -26,7 +26,11 @@ class Chapter:
     learning_knowledge: List[Dict[str, Any]] = field(default_factory=list)
 
     def add_reference(self, reference: Reference | List[Reference]):
-        self.references += reference
+        """添加引用到章节"""
+        if isinstance(reference, list):
+            self.references.extend(reference)
+        else:
+            self.references.append(reference)
 
     def get_outline(self) -> str:
         """
@@ -55,35 +59,52 @@ class Chapter:
 
         return "\n\n".join(markdown_parts)
 
-    def merge_knowledge(self):
+    def merge_knowledge(self) -> "Chapter":
         """
-        Convert chapters and their sub chapters to Markdown text
-
+        合并具有相同引用的知识点，避免重复内容
+        
         Returns:
-            Generated Markdown string
+            返回自身以支持链式调用
         """
-        groups = {}
+        if not self.learning_knowledge:
+            return self
+            
+        groups: Dict[tuple, List[str]] = {}
 
         for knowledge in self.learning_knowledge:
-            ref_tuple = tuple(sorted(knowledge["real_reference"]))
+            real_ref = knowledge.get("real_reference", [])
+            if not isinstance(real_ref, list):
+                real_ref = [real_ref] if real_ref else []
+            ref_tuple = tuple(sorted(real_ref))
 
             if ref_tuple in groups:
-                groups[ref_tuple].append(knowledge["insight"])
+                groups[ref_tuple].append(knowledge.get("insight", ""))
             else:
-                groups[ref_tuple] = [knowledge["insight"]]
+                groups[ref_tuple] = [knowledge.get("insight", "")]
 
         merged = []
         for ref_tuple, insights in groups.items():
-            merged_insight = "\n\n".join(insights)
-            merged_ref = list(ref_tuple)
-            merged.append({"insight": merged_insight, "real_reference": merged_ref})
+            # 过滤空字符串
+            valid_insights = [i for i in insights if i and i.strip()]
+            if valid_insights:
+                merged_insight = "\n\n".join(valid_insights)
+                merged_ref = list(ref_tuple)
+                merged.append({"insight": merged_insight, "real_reference": merged_ref})
+        
         self.learning_knowledge = merged
         return self
 
     def get_knowledge_str(self) -> str:
-        if self.learning_knowledge:
-            return json.dumps([{'id': i, 'content': knowledge["insight"]} for i, knowledge in enumerate(self.learning_knowledge)])
-        else:
+        """获取知识点的JSON字符串表示"""
+        if not self.learning_knowledge:
+            return "[]"
+        try:
+            return json.dumps([
+                {'id': i, 'content': knowledge.get("insight", "")} 
+                for i, knowledge in enumerate(self.learning_knowledge)
+                if knowledge.get("insight", "").strip()
+            ], ensure_ascii=False)
+        except (TypeError, ValueError) as e:
             return "[]"
 
 

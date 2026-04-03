@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "DeepResearch"
-version = "1.0.0"
+version = "1.1.1"
 description = "Typist is a deep research framework based on the collaborative work of multiple LLMs. It integrates search tools to conduct deep research on topics and ultimately outputs visualized research reports."
 authors = ["CzChu <czchu2@iflytek.com>"]
 license = "https://github.com/iflytek/DeepResearch/blob/main/LICENSE"

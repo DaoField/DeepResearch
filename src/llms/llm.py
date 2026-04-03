@@ -84,22 +84,32 @@ def llm(
         return _non_stream_llm_response(llm, messages)
 
 
-def _stream_llm_response(llm: ChatDeepSeek, messages: List[Union[HumanMessage, AIMessage, SystemMessage]]) -> Generator[str, None, None]:
+def _stream_llm_response(llm: ChatDeepSeek, messages: List[Union[HumanMessage, AIMessage, SystemMessage]]) -> Generator[tuple[str, str], None, None]:
     """
     Handles streaming responses from LLM.
 
     Args:
-        llm: ChatOpenAI instance with streaming enabled
+        llm: ChatDeepSeek instance with streaming enabled
         messages: List of messages representing the conversation history
 
     Yields:
         Tuples containing (reasoning_content, content) for each response chunk
     """
+    if not messages:
+        logger.warning("Empty messages list provided to LLM stream")
+        return
+        
     # Stream responses and process chunks
     try:
         for chunk in llm.stream(messages):
-            reasoning_content = chunk.additional_kwargs.get("reasoning_content", "")
-            content = chunk.content
+            if not chunk:
+                continue
+            reasoning_content = ""
+            content = ""
+            if hasattr(chunk, 'additional_kwargs'):
+                reasoning_content = chunk.additional_kwargs.get("reasoning_content", "")
+            if hasattr(chunk, 'content'):
+                content = chunk.content
             yield reasoning_content, content
     except Exception as e:
         logger.error(f"LLM streaming error: {e}")
@@ -110,20 +120,32 @@ def _non_stream_llm_response(llm: ChatDeepSeek, messages: List[Union[HumanMessag
     Handles non-streaming responses from LLM.
 
     Args:
-        llm: ChatOpenAI instance with streaming disabled
+        llm: ChatDeepSeek instance with streaming disabled
         messages: List of messages representing the conversation history
 
     Returns:
         Complete response string
     """
+    if not messages:
+        logger.warning("Empty messages list provided to LLM")
+        return ""
+        
     try:
         response = llm.invoke(messages)
     except Exception as e:
         logger.error(f"LLM invoke error: {e}")
         return ""
-    reasoning_content = response.additional_kwargs.get("reasoning_content","")
-    content = response.content
-    return f"<thinking>{reasoning_content}</thinking>\n{content}" if reasoning_content else f"{content}"
+        
+    if not response:
+        logger.warning("Empty response from LLM")
+        return ""
+        
+    reasoning_content = response.additional_kwargs.get("reasoning_content", "") if hasattr(response, 'additional_kwargs') else ""
+    content = response.content if hasattr(response, 'content') else str(response)
+    
+    if reasoning_content:
+        return f"<thinking>{reasoning_content}</thinking>\n{content}"
+    return content
 
 
 if __name__ == "__main__":

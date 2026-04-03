@@ -4,9 +4,12 @@
 from typing import *
 
 import tavily
+import logging
 
 from src.config.search_config import search_config
 from src.tools._search import SearchClient, SearchResult
+
+logger = logging.getLogger(__name__)
 
 class TavilySearchClient(SearchClient):
     """Client for searching web using Tavily SDK"""
@@ -25,23 +28,30 @@ class TavilySearchClient(SearchClient):
             List of SearchResult objects containing search information
         """
         search_results: List[SearchResult] = []
+        if not query or not query.strip():
+            return search_results
+            
         try:
             search_response = self._client.search(
-                query=query,
-                max_results=top_n,
+                query=query.strip(),
+                max_results=min(max(top_n, 1), 20),  # 限制范围 1-20
                 include_raw_content=True
             )
-            for search_result in search_response.get('results', []):
+            for i, search_result in enumerate(search_response.get('results', [])):
+                url = search_result.get('url', '').strip()
+                if not url:  # 跳过无效URL
+                    continue
                 search_results.append(SearchResult(
-                    url=search_result.get('url', ''),
-                    title=search_result.get('title', ''),
+                    url=url,
+                    title=search_result.get('title', '') or "Untitled",
                     summary=search_result.get('content', ''),
                     content=search_result.get('raw_content', ''),
-                    date=''
+                    date='',
+                    id=i
                 ))
 
         except Exception as e:
-            print(f"Error in Tavily search: {e}")
+            logger.error(f"Error in Tavily search: {e}")
         
         return search_results
 

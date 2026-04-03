@@ -72,11 +72,18 @@ class DeepSearch:
         return result
 
     def _deep_search(self, query:List[str], depth:int, judge_results:List[Judge], outline:str, pre_answer:str, pre_knowledge: Set[str]) -> DeepSearchResult:
+        # 输入验证
+        if not query:
+            return DeepSearchResult(
+                query=[], search_result={}, all_knowledge=[], used_knowledge=[],
+                re_knowledge=[], answer='', eval_result=[], children=None
+            )
+            
         search_results = self._search_all(query)
         all_search:Dict[str,List[search.SearchResult]] = {}
         for q, search_result in search_results.items():
             for result in search_result:
-                if result.url in pre_knowledge:
+                if not result.url or result.url in pre_knowledge:
                     continue
                 pre_knowledge.add(result.url)
                 all_search.setdefault(q, []).append(result)
@@ -175,21 +182,29 @@ class DeepSearch:
 
         # Parallel search with bounded concurrency to avoid API rate limiting
         max_workers = min(len(query), 5)
-        pre_knowledge_lock = threading.Lock()
 
         def _single_search(q: str) -> Tuple[str, List[search.SearchResult]]:
-            colored_print(f'Searching: {q}', color="purple")
-            results = self._search_client.search(q, self._search_top_n)
-            for result in results:
-                colored_print(f'{result.title} -- ', color="cyan", end="")
-                colored_print(result.url, color="blue", underline=True)
-            return (q, results)
+            try:
+                colored_print(f'Searching: {q}', color="purple")
+                results = self._search_client.search(q, self._search_top_n)
+                for result in results:
+                    if result.title and result.url:
+                        colored_print(f'{result.title} -- ', color="cyan", end="")
+                        colored_print(result.url, color="blue", underline=True)
+                return (q, results)
+            except Exception as e:
+                logger.error(f"Search failed for query '{q}': {e}")
+                return (q, [])
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_map = {executor.submit(_single_search, q): q for q in query}
             for future in as_completed(future_map):
-                q, results = future.result()
-                search_result[q] = results
+                try:
+                    q, results = future.result()
+                    if results:  # 只保存有结果的搜索
+                        search_result[q] = results
+                except Exception as e:
+                    logger.error(f"Error processing search result: {e}")
 
         return search_result
 
@@ -347,10 +362,22 @@ class DeepSearch:
 
         return research_result.get('search_query_list', [])
 
-    def _get_all_used_knowledge(self, result: DeepSearchResult) -> List[Knowledge]:
-        if result == None:
+    def _get_all_used_knowledge(self, result: Optional[DeepSearchResult]) -> List[Knowledge]:
+        """递归获取所有使用过的知识，避免循环引用"""
+        if result is None:
             return []
-        return result.used_knowledge + self._get_all_used_knowledge(result.children)
+        
+        # 使用迭代代替递归，避免栈溢出
+        all_knowledge = []
+        current: Optional[DeepSearchResult] = result
+        visited = set()
+        
+        while current and id(current) not in visited:
+            visited.add(id(current))
+            all_knowledge.extend(current.used_knowledge or [])
+            current = current.children
+            
+        return all_knowledge
 
     def _to_id_array(self, ids:object) -> List[str]:
         if not ids:

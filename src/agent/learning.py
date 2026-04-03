@@ -90,15 +90,19 @@ def get_all_search_results(result: DeepSearchResult) -> List[SearchResult]:
 
 
 def get_real_reference_ids(search_results: List, references: List[SearchResult]) -> List[int]:
-    url_to_id = {search["url"]: search["id"] for search in search_results}
+    """获取真实引用ID列表，去重并排序"""
+    if not search_results or not references:
+        return []
+        
+    url_to_id = {search.get("url"): search.get("id") for search in search_results if search.get("url")}
 
     reference_ids = []
     seen = set()
 
     for reference in references:
-        if reference.url in url_to_id:
+        if reference and reference.url and reference.url in url_to_id:
             ref_id = url_to_id[reference.url]
-            if ref_id not in seen:
+            if ref_id is not None and ref_id not in seen:
                 reference_ids.append(ref_id)
                 seen.add(ref_id)
 

@@ -63,11 +63,17 @@ poetry env activate
 # Run the application
 poetry run python -m src.run
 
-# Run tests
-pytest src/agent/test_agent.py
+# Run all tests
+poetry run pytest
 
-# Run specific test
-pytest src/agent/test_agent.py::test_function_name
+# Run specific test file
+poetry run pytest src/agent/test_agent.py
+
+# Run specific test function
+poetry run pytest src/agent/test_agent.py::test_function_name
+
+# Run tests with coverage
+poetry run pytest --cov=src
 ```
 
 ---
