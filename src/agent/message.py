@@ -7,34 +7,23 @@ from langgraph.graph import MessagesState
 from typing import List, Optional, Any, Dict
 
 
+@dataclass
 class Reference:
-    def __init__(self, ref_id: int, source: Optional[str] = None):
-        self.ref_id = ref_id  # 对应Go的RefId
-        self.source = source
+    ref_id: int  # 对应Go的RefId
+    source: Optional[str] = None
 
 
+@dataclass
 class Chapter:
-    def __init__(
-        self,
-        id: int,
-        level: Optional[int] = None,
-        title: Optional[str] = None,
-        thinking: Optional[str] = None,
-        summary: Optional[str] = None,
-        sub_chapter: Optional[List["Chapter"]] = None,
-        parent_chapter: Optional["Chapter"] = None,
-        references: Optional[List[Reference]] = None,
-        learning_knowledge: Optional[List[Dict[str, Any]]] = None
-    ):
-        self.id = id
-        self.level = level
-        self.title = title
-        self.thinking = thinking
-        self.summary = summary
-        self.sub_chapter = sub_chapter if sub_chapter is not None else []
-        self.references = references if references is not None else []
-        self.learning_knowledge = learning_knowledge if learning_knowledge is not None else []
-        self.parent_chapter = parent_chapter
+    id: int
+    level: Optional[int] = None
+    title: Optional[str] = None
+    thinking: Optional[str] = None
+    summary: Optional[str] = None
+    sub_chapter: List["Chapter"] = field(default_factory=list)
+    parent_chapter: Optional["Chapter"] = None
+    references: List[Reference] = field(default_factory=list)
+    learning_knowledge: List[Dict[str, Any]] = field(default_factory=list)
 
     def add_reference(self, reference: Reference | List[Reference]):
         self.references += reference
