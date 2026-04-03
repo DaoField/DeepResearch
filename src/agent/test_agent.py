@@ -3,7 +3,7 @@
 
 import pytest
 from datetime import datetime
-from langchain.schema import HumanMessage, AIMessage, SystemMessage
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from .prep import rewrite_node, classify_node, generic_node, clarify_node
 from .outline import outline_search_node, outline_node, outline_knowledge_2_str
 from langgraph.types import Command

@@ -6,7 +6,7 @@ from typing import List, Union
 from langgraph.types import Command
 
 from src.agent.agent import build_agent
-from langchain.schema import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage, AIMessage
 
 graph = build_agent()
 

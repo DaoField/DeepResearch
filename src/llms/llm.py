@@ -3,7 +3,7 @@
 
 from typing import Generator, Union, Dict, List
 from functools import lru_cache
-from langchain.schema import HumanMessage, AIMessage, SystemMessage
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_deepseek import ChatDeepSeek
 
 from src.config.llms_config import LLMType, llm_configs

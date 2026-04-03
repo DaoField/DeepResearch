@@ -5,7 +5,7 @@ import os
 import importlib
 import sys
 from typing import Dict, List, Any
-from langchain.schema import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 
 # Define directories containing prompt templates (relative or absolute paths)
 PROMPTS_DIRS = [
