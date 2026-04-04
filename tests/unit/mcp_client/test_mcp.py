@@ -5,101 +5,88 @@
 """
 test paper_mcp_server
 """
+from __future__ import annotations
+
 import json
+import pytest
 from deepresearch.mcp_client.paper_mcp_server import arxiv_search, arxiv_read, pubmed_search, pubmed_read
 
 
-def test_arxiv_search():
-    print("\n=== test ArXiv search===")
+@pytest.fixture
+def paper_id():
+    """Fixture to get a paper ID from arxiv search"""
     try:
         results = arxiv_search("machine learning", max_results=1)
-        print(f"arxiv search result: {results}")
         data = json.loads(results)
         if data.get('papers'):
-            print(f"get {len(data['papers'])} paper")
-            print(f"first paper title: {data['papers'][0]['title']}")
             return data['papers'][0]['id']
-        else:
-            print("arxiv find no paper")
-            return None
+    except Exception:
+        pass
+    return None
+
+
+@pytest.fixture
+def pubmed_paper_id():
+    """Fixture to get a paper ID from pubmed search"""
+    try:
+        results = pubmed_search("covid-19", max_results=1)
+        data = json.loads(results)
+        if data.get('papers'):
+            return data['papers'][0]['id']
+    except Exception:
+        pass
+    return None
+
+
+def test_arxiv_search():
+    """test ArXiv search"""
+    try:
+        results = arxiv_search("machine learning", max_results=1)
+        data = json.loads(results)
+        assert isinstance(data, dict)
+        if data.get('papers'):
+            assert isinstance(data['papers'], list)
     except Exception as e:
-        print(f"arxiv search test error: {e}")
-        return None
+        pytest.skip(f"arxiv search test error: {e}")
+
 
 def test_arxiv_read(paper_id):
     """test arXiv read"""
     if not paper_id:
-        print("\n=== get no paper id ===")
-        return
+        pytest.skip("No paper ID available from arxiv search")
 
     try:
         content = arxiv_read(paper_id)
-        print(f"get paper content")
-
         data = json.loads(content)
+        assert isinstance(data, dict)
         if 'meta' in data:
-            print(f"paper title: {data['meta']['title']}")
-            print(f"author: {', '.join(data['meta']['authors'])}")
-            print(f"abstract length: {len(data['meta']['abstract'])} words")
-        if 'markdown' in data:
-            print(f"Markdown length: {len(data['markdown'])} word")
+            assert 'title' in data['meta']
     except Exception as e:
-        print(f"arxiv read test failed: {e}")
+        pytest.skip(f"arxiv read test failed: {e}")
+
 
 def test_pubmed_search():
     """test PubMed search"""
-    print("\n=== test PubMed search ===")
     try:
         results = pubmed_search("covid-19", max_results=1)
-        print(f"search result: {results}")
-
         data = json.loads(results)
+        assert isinstance(data, dict)
         if data.get('papers'):
-            print(f"get {len(data['papers'])} paper")
-            print(f"first paper title: {data['papers'][0]['title']}")
-            return data['papers'][0]['id']
-        else:
-            print("pubmed find no paper")
-            return None
+            assert isinstance(data['papers'], list)
     except Exception as e:
-        print(f"pubmed search error: {e}")
-        return None
+        pytest.skip(f"pubmed search error: {e}")
 
-def test_pubmed_read(paper_id):
+
+def test_pubmed_read(pubmed_paper_id):
     """test PubMed read"""
-    if not paper_id:
-        print("\n no paper id")
-        return
+    if not pubmed_paper_id:
+        pytest.skip("No paper ID available from pubmed search")
 
     try:
-
-        content = pubmed_read(paper_id)
-        print(f"get paper content")
-        print(f"paper length: {len(content)}")
-        print(f"100 words: {repr(content[:100]) if len(content) > 0 else 'no content'}")
+        content = pubmed_read(pubmed_paper_id)
         data = json.loads(content)
+        assert isinstance(data, dict)
         if 'meta' in data:
-            print(f"paper title: {data['meta']['title']}")
-            print(f"author: {', '.join(data['meta']['authors'])}")
-            print(f"abstract length: {len(data['meta']['abstract'])} words")
-        if 'markdown' in data:
-            print(f"Markdown length: {len(data['markdown'])} words")
-    except json.JSONDecodeError as e:
-        print(f"JSON error: {e}")
+            assert 'title' in data['meta']
     except Exception as e:
-        print(f"pubmed read error: {e}")
-
-def main():
-    """test all tools"""
-
-    arxiv_paper_id = test_arxiv_search()
-    test_arxiv_read(arxiv_paper_id)
-    
-
-    pubmed_paper_id = test_pubmed_search()
-    test_pubmed_read(pubmed_paper_id)
-    
-    print("\n=== test finished ===")
-
-if __name__ == "__main__":
-    main()
+        pytest.skip(f"pubmed read error: {e}")

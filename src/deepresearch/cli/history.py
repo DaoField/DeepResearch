@@ -1,11 +1,6 @@
 # Copyright (c) 2025 IFLYTEK Ltd.
 # SPDX-License-Identifier: Apache 2.0 License
-
-"""
-命令历史管理模块
-
-提供对话历史记录功能，支持保存、加载和查询历史记录。
-"""
+from __future__ import annotations
 
 import json
 import os
@@ -22,27 +17,16 @@ logger = get_logger(__name__)
 
 @dataclass
 class HistoryEntry:
-    """历史记录条目。
-
-    Attributes:
-        timestamp: 时间戳，ISO格式字符串
-        user_input: 用户输入内容
-        response: 系统响应内容
-        session_id: 会话ID，可选
-    """
-
     timestamp: str
     user_input: str
     response: str
     session_id: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        """转换为字典。"""
         return asdict(self)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> HistoryEntry:
-        """从字典创建实例。"""
         return cls(
             timestamp=data.get("timestamp", ""),
             user_input=data.get("user_input", ""),
@@ -53,23 +37,6 @@ class HistoryEntry:
 
 @dataclass
 class HistoryManager:
-    """历史记录管理器。
-
-    管理对话历史记录的加载、保存、查询和清理。
-
-    Attributes:
-        history_file: 历史记录文件路径，可选
-        max_entries: 最大历史记录条目数，默认100
-        _entries: 历史记录条目列表，内部使用
-        _session_id: 当前会话ID，内部使用
-        _loaded: 是否已加载历史记录，内部使用
-
-    Example:
-        >>> manager = HistoryManager(history_file=Path("history.json"))
-        >>> manager.add_entry("你好", "你好！有什么可以帮助你的？")
-        >>> recent = manager.get_recent(5)
-    """
-
     history_file: Path | None = None
     max_entries: int = 100
     _entries: list[HistoryEntry] = field(default_factory=list, repr=False)
@@ -77,7 +44,6 @@ class HistoryManager:
     _loaded: bool = field(default=False, init=False, repr=False)
 
     def __post_init__(self) -> None:
-        """初始化后处理：生成会话ID并加载历史记录。"""
         object.__setattr__(
             self, "_session_id", datetime.now().strftime("%Y%m%d_%H%M%S")
         )
@@ -85,7 +51,6 @@ class HistoryManager:
             self._load_history()
 
     def _load_history(self) -> None:
-        """从文件加载历史记录。"""
         if not self.history_file or not self.history_file.exists():
             return
 
@@ -105,7 +70,6 @@ class HistoryManager:
             logger.warning(f"加载历史记录失败: {e}")
 
     def _save_history(self) -> None:
-        """保存历史记录到文件。"""
         if not self.history_file:
             return
 
@@ -126,12 +90,6 @@ class HistoryManager:
             )
 
     def add_entry(self, user_input: str, response: str) -> None:
-        """添加新的历史记录条目。
-
-        Args:
-            user_input: 用户输入
-            response: 系统响应
-        """
         entry = HistoryEntry(
             timestamp=datetime.now().isoformat(),
             user_input=user_input,
@@ -140,48 +98,22 @@ class HistoryManager:
         )
         self._entries.append(entry)
 
-        # 限制历史记录数量
         if len(self._entries) > self.max_entries:
             self._entries = self._entries[-self.max_entries :]
 
-        # 异步保存
         try:
             self._save_history()
         except FileOperationError:
             logger.warning("保存历史记录失败，但不影响正常使用")
 
     def get_recent(self, count: int = 10) -> list[HistoryEntry]:
-        """获取最近的历史记录。
-
-        Args:
-            count: 获取数量
-
-        Returns:
-            历史记录列表
-        """
         return self._entries[-count:] if self._entries else []
 
     def get_session_history(self, session_id: str | None = None) -> list[HistoryEntry]:
-        """获取指定会话的历史记录。
-
-        Args:
-            session_id: 会话ID，None表示当前会话
-
-        Returns:
-            历史记录列表
-        """
         sid = session_id or self._session_id
         return [entry for entry in self._entries if entry.session_id == sid]
 
     def search(self, keyword: str) -> list[HistoryEntry]:
-        """搜索历史记录。
-
-        Args:
-            keyword: 搜索关键词
-
-        Returns:
-            匹配的历史记录列表
-        """
         keyword_lower = keyword.lower()
         return [
             entry
@@ -191,7 +123,6 @@ class HistoryManager:
         ]
 
     def clear(self) -> None:
-        """清空历史记录。"""
         self._entries.clear()
         if self.history_file and self.history_file.exists():
             try:
@@ -204,11 +135,6 @@ class HistoryManager:
                 )
 
     def get_stats(self) -> dict[str, Any]:
-        """获取历史记录统计信息。
-
-        Returns:
-            统计信息字典
-        """
         if not self._entries:
             return {
                 "total_entries": 0,
@@ -227,15 +153,9 @@ class HistoryManager:
 
 
 def get_default_history_path() -> Path:
-    """获取默认历史文件路径。
-
-    Returns:
-        历史文件路径
-    """
-    # 优先使用用户目录
-    if os.name == "nt":  # Windows
+    if os.name == "nt":
         base_dir = Path(os.environ.get("APPDATA", Path.home()))
-    else:  # Unix-like
+    else:
         base_dir = Path(
             os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share")
         )

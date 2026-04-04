@@ -1,9 +1,15 @@
 # Copyright (c) 2025 IFLYTEK Ltd.
 # SPDX-License-Identifier: Apache 2.0 License
 
+from __future__ import annotations
+
+import hashlib
 import logging
+from collections import OrderedDict
 from collections.abc import Generator
 from functools import lru_cache
+from threading import Lock
+from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_deepseek import ChatDeepSeek
@@ -12,7 +18,6 @@ from deepresearch.config.llms_config import LLMType, get_llm_configs
 
 logger = logging.getLogger(__name__)
 
-# Maximum number of cached LLM instances (prevents unbounded memory growth)
 _MAX_LLM_CACHE_SIZE = 24
 
 
@@ -36,7 +41,6 @@ def _make_llm_instance(
     return ChatDeepSeek(**config_dict)
 
 
-# Apply LRU cache to the factory function - auto-evicts least recently used when cache is full
 _cached_make_llm_instance = lru_cache(maxsize=_MAX_LLM_CACHE_SIZE)(_make_llm_instance)
 
 
@@ -61,13 +65,68 @@ def _get_llm_instance(
     return _cached_make_llm_instance(llm_type, streaming, max_tokens)
 
 
-# Cache size for LLM responses
 _MAX_RESPONSE_CACHE_SIZE = 100
 
 
+class ThreadSafeLRUCache:
+    """Thread-safe LRU cache for LLM responses with O(1) operations."""
+
+    def __init__(self, max_size: int = _MAX_RESPONSE_CACHE_SIZE):
+        self._cache: OrderedDict[str, str] = OrderedDict()
+        self._lock = Lock()
+        self._max_size = max_size
+        self._hits = 0
+        self._misses = 0
+
+    def get(self, key: str) -> str | None:
+        """Get item from cache, moving it to end (most recently used)."""
+        with self._lock:
+            if key in self._cache:
+                self._cache.move_to_end(key)
+                self._hits += 1
+                return self._cache[key]
+            self._misses += 1
+            return None
+
+    def set(self, key: str, value: str) -> None:
+        """Set item in cache, evicting oldest if at capacity."""
+        with self._lock:
+            if key in self._cache:
+                self._cache.move_to_end(key)
+                self._cache[key] = value
+            else:
+                self._cache[key] = value
+                while len(self._cache) > self._max_size:
+                    self._cache.popitem(last=False)
+
+    def clear(self) -> None:
+        """Clear the cache."""
+        with self._lock:
+            self._cache.clear()
+            self._hits = 0
+            self._misses = 0
+
+    def get_stats(self) -> dict[str, Any]:
+        """Get cache statistics."""
+        with self._lock:
+            total = self._hits + self._misses
+            hit_rate = self._hits / total if total > 0 else 0
+            return {
+                "size": len(self._cache),
+                "max_size": self._max_size,
+                "hits": self._hits,
+                "misses": self._misses,
+                "hit_rate": hit_rate,
+            }
+
+
+_response_cache = ThreadSafeLRUCache(_MAX_RESPONSE_CACHE_SIZE)
+
+
 def _message_hash(messages: list[HumanMessage | AIMessage | SystemMessage]) -> str:
-    """Generate a hash for a list of messages to use as cache key"""
-    return "".join([f"{msg.type}:{msg.content[:200]}" for msg in messages])
+    """Generate a stable hash for a list of messages using SHA-256."""
+    content = "".join([f"{msg.type}:{msg.content}" for msg in messages])
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()[:32]
 
 
 def _cached_llm_response(
@@ -82,10 +141,6 @@ def _cached_llm_response(
         return _stream_llm_response(llm, messages)
     else:
         return _non_stream_llm_response(llm, messages)
-
-
-# Cache for LLM responses
-_response_cache: dict[tuple, str] = {}
 
 
 def llm(
@@ -105,33 +160,28 @@ def llm(
         - Generator yielding string chunks if stream=True
         - Complete response string if stream=False
     """
-    # Only cache non-streaming responses
-    if not stream and messages:
-        # Generate cache key using message hash and llm type
+    if not messages:
+        logger.warning("Empty messages list provided to LLM")
+        return "" if not stream else (_ for _ in ())
+
+    if not stream:
         message_hash = _message_hash(messages)
-        cache_key = (llm_type, message_hash)
+        cache_key = f"{llm_type}:{message_hash}"
 
-        # Check if response is in cache
-        if cache_key in _response_cache:
-            return _response_cache[cache_key]
+        cached = _response_cache.get(cache_key)
+        if cached is not None:
+            logger.debug(f"Cache hit for LLM response: {llm_type}")
+            return cached
 
-        # Generate response and cache it
         response = _cached_llm_response(llm_type, message_hash, stream, messages)
 
-        # Manage cache size
-        if len(_response_cache) >= _MAX_RESPONSE_CACHE_SIZE:
-            # Remove oldest item (FIFO)
-            oldest_key = next(iter(_response_cache))
-            del _response_cache[oldest_key]
+        if response:
+            _response_cache.set(cache_key, response)
 
-        _response_cache[cache_key] = response
         return response
     else:
-        llm = _get_llm_instance(llm_type, stream)
-        if stream:
-            return _stream_llm_response(llm, messages)
-        else:
-            return _non_stream_llm_response(llm, messages)
+        llm_instance = _get_llm_instance(llm_type, stream)
+        return _stream_llm_response(llm_instance, messages)
 
 
 def _stream_llm_response(
@@ -151,7 +201,6 @@ def _stream_llm_response(
         logger.warning("Empty messages list provided to LLM stream")
         return
 
-    # Stream responses and process chunks
     try:
         for chunk in llm.stream(messages):
             if not chunk:
@@ -206,9 +255,19 @@ def _non_stream_llm_response(
     return content
 
 
+def get_cache_stats() -> dict[str, Any]:
+    """Get cache statistics for monitoring."""
+    return _response_cache.get_stats()
+
+
+def clear_cache() -> None:
+    """Clear the response cache."""
+    _response_cache.clear()
+    _cached_make_llm_instance.cache_clear()
+
+
 if __name__ == "__main__":
     try:
-        # Example conversation message list
         conversation = [
             SystemMessage(
                 content="You are a physics expert skilled at explaining complex concepts in simple, understandable language."
@@ -221,7 +280,6 @@ if __name__ == "__main__":
             ),
         ]
 
-        # Demonstrate non-streaming response (continuing the conversation)
         print("=== Non-streaming Response ===")
         non_stream_response = llm(
             "basic",
@@ -233,7 +291,6 @@ if __name__ == "__main__":
         )
         print(non_stream_response)
 
-        # Demonstrate streaming response
         print("\n=== Streaming Response ===")
         for reasoning_content, content in llm(
             "basic",
@@ -242,6 +299,9 @@ if __name__ == "__main__":
         ):
             print(reasoning_content, end="", flush=True)
             print(content, end="", flush=True)
+
+        print("\n=== Cache Stats ===")
+        print(get_cache_stats())
 
     except Exception as e:
         print(f"Error with LLM response: {e}")

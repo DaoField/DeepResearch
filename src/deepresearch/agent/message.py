@@ -1,5 +1,7 @@
 # Copyright (c) 2025 iFLYTEK CO.,LTD.
 # SPDX-License-Identifier: Apache 2.0 License
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass, field
 from typing import Any
@@ -9,7 +11,7 @@ from langgraph.graph import MessagesState
 
 @dataclass
 class Reference:
-    ref_id: int  # 对应Go的RefId
+    ref_id: int
     source: str | None = None
 
 
@@ -26,19 +28,12 @@ class Chapter:
     learning_knowledge: list[dict[str, Any]] = field(default_factory=list)
 
     def add_reference(self, reference: Reference | list[Reference]):
-        """添加引用到章节"""
         if isinstance(reference, list):
             self.references.extend(reference)
         else:
             self.references.append(reference)
 
     def get_outline(self) -> str:
-        """
-        Convert chapters and their sub chapters to Markdown text
-
-        Returns:
-            Generated Markdown string
-        """
         markdown_parts = []
 
         if self.title and self.level is not None:
@@ -60,12 +55,6 @@ class Chapter:
         return "\n\n".join(markdown_parts)
 
     def merge_knowledge(self) -> Chapter:
-        """
-        合并具有相同引用的知识点，避免重复内容
-
-        Returns:
-            返回自身以支持链式调用
-        """
         if not self.learning_knowledge:
             return self
 
@@ -84,7 +73,6 @@ class Chapter:
 
         merged = []
         for ref_tuple, insights in groups.items():
-            # 过滤空字符串
             valid_insights = [i for i in insights if i and i.strip()]
             if valid_insights:
                 merged_insight = "\n\n".join(valid_insights)
@@ -95,7 +83,6 @@ class Chapter:
         return self
 
     def get_knowledge_str(self) -> str:
-        """获取知识点的JSON字符串表示"""
         if not self.learning_knowledge:
             return "[]"
         try:
@@ -107,24 +94,18 @@ class Chapter:
                 ],
                 ensure_ascii=False,
             )
-        except TypeError | ValueError:
+        except (TypeError, ValueError):
             return "[]"
 
 
 class ReportState(MessagesState):
-    # Report outline
     outline: Chapter
-    # User request
     messages: list
-    # Report topic, rewritten by user request
     topic: str
-    # domain
     domain: str
     logic: str
     details: str
     output: dict
     knowledge: list
-    # Final report
     final_report: str
-    # Do you want to save the final report as a html
     search_id: int

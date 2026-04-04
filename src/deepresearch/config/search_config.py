@@ -42,7 +42,7 @@ class SearchConfig:
             timeout = int(timeout)
             if timeout < 1 or timeout > 300:
                 raise ValueError("Timeout must be between 1 and 300 seconds")
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             raise ValueError("Timeout must be a valid integer")
 
         return cls(

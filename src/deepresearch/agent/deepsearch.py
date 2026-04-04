@@ -1,5 +1,6 @@
 # Copyright (c) 2025 iFLYTEK CO.,LTD.
 # SPDX-License-Identifier: Apache 2.0 License
+from __future__ import annotations
 
 import json
 import logging
@@ -27,8 +28,6 @@ class Judge:
 
 @dataclass(kw_only=True)
 class Knowledge:
-    """Data structure to hold knowledge"""
-
     insight: str
     snippets: list[str]
     references: list[search.SearchResult]
@@ -36,8 +35,6 @@ class Knowledge:
 
 @dataclass(kw_only=True)
 class EvalResult:
-    """Data structure to hold evaluation result information"""
-
     eval_type: str
     reason: str
     pass_label: bool
@@ -45,8 +42,6 @@ class EvalResult:
 
 @dataclass(kw_only=True)
 class DeepSearchResult:
-    """Data structure to hold deep search result information"""
-
     query: list[str]
     all_knowledge: list[Knowledge]
     used_knowledge: list[Knowledge]
@@ -54,12 +49,10 @@ class DeepSearchResult:
     answer: str
     search_result: dict[str, list[search.SearchResult]]
     eval_result: list[EvalResult]
-    children: DeepSearchResult
+    children: DeepSearchResult | None = None
 
 
 class DeepSearch:
-    """Deep search workflow"""
-
     def __init__(
         self,
         title: str,
@@ -79,7 +72,6 @@ class DeepSearch:
         self._search_query_re = re.compile(r"(?s)<sq>(.*?)</sq>")
 
     def deep_search(self) -> DeepSearchResult:
-        """Deep search for the given query"""
         outline = self._make_outline()
         query = self._gen_search_query(outline)
         judge_results = self._judge_query(outline)
@@ -96,7 +88,6 @@ class DeepSearch:
         pre_answer: str,
         pre_knowledge: set[str],
     ) -> DeepSearchResult:
-        # 输入验证
         if not query:
             return DeepSearchResult(
                 query=[],
@@ -220,7 +211,6 @@ class DeepSearch:
         if not query:
             return search_result
 
-        # Parallel search with bounded concurrency to avoid API rate limiting
         max_workers = min(len(query), 5)
 
         def _single_search(q: str) -> tuple[str, list[search.SearchResult]]:
@@ -241,7 +231,7 @@ class DeepSearch:
             for future in as_completed(future_map):
                 try:
                     q, results = future.result()
-                    if results:  # 只保存有结果的搜索
+                    if results:
                         search_result[q] = results
                 except Exception as e:
                     logger.error(f"Error processing search result: {e}")
@@ -430,11 +420,9 @@ class DeepSearch:
     def _get_all_used_knowledge(
         self, result: Optional[DeepSearchResult]
     ) -> list[Knowledge]:
-        """递归获取所有使用过的知识，避免循环引用"""
         if result is None:
             return []
 
-        # 使用迭代代替递归，避免栈溢出
         all_knowledge = []
         current: Optional[DeepSearchResult] = result
         visited = set()
@@ -459,7 +447,7 @@ class DeepSearch:
                 try:
                     num = str(id)
                     result.append(num)
-                except ValueError | TypeError:
+                except (ValueError, TypeError):
                     continue
             return result
         except (ValueError, TypeError, json.JSONDecodeError) as e:
@@ -479,7 +467,7 @@ class DeepSearch:
                 try:
                     num = int(str(id))
                     result.append(num)
-                except ValueError | TypeError:
+                except (ValueError, TypeError):
                     continue
             return result
         except (ValueError, TypeError, json.JSONDecodeError) as e:

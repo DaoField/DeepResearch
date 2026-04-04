@@ -247,7 +247,9 @@ class PubMedService:
 
             page_url = f"{SCI_HUB_URL}{doi}"
 
-            with httpx.Client(timeout=self._download_timeout, follow_redirects=True) as client:
+            with httpx.Client(
+                timeout=self._download_timeout, follow_redirects=True
+            ) as client:
                 response = client.get(page_url)
                 response.raise_for_status()
 

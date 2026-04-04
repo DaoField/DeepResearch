@@ -1,11 +1,6 @@
 # Copyright (c) 2025 IFLYTEK Ltd.
 # SPDX-License-Identifier: Apache 2.0 License
-
-"""
-CLI 配置模块
-
-提供CLI配置管理和默认值设置。
-"""
+from __future__ import annotations
 
 import os
 from dataclasses import dataclass
@@ -19,22 +14,6 @@ logger = get_logger(__name__)
 
 @dataclass(frozen=True)
 class CLIConfig:
-    """CLI 配置类。
-
-    Attributes:
-        max_depth: 最大搜索深度，范围 1-10
-        save_as_html: 是否保存为HTML格式
-        save_path: 报告保存路径
-        log_level: 日志级别
-        log_file: 日志文件路径，None表示只输出到控制台
-        history_file: 命令历史文件路径
-        max_history: 最大历史记录数
-        stream_output: 是否流式输出
-        timeout: Agent执行超时时间（秒）
-        theme: 输出主题样式
-        config_dir: 配置文件目录路径，None表示使用默认路径
-    """
-
     max_depth: int = 3
     save_as_html: bool = True
     save_path: str = "./example/report"
@@ -48,14 +27,12 @@ class CLIConfig:
     config_dir: str | None = None
 
     def __post_init__(self) -> None:
-        """验证配置值的有效性。"""
         object.__setattr__(self, "max_depth", max(1, min(self.max_depth, 10)))
         object.__setattr__(self, "max_history", max(10, min(self.max_history, 1000)))
         object.__setattr__(self, "timeout", max(30, min(self.timeout, 3600)))
 
     @classmethod
     def from_env(cls) -> CLIConfig:
-        """从环境变量加载配置。"""
         return cls(
             max_depth=int(os.getenv("DEEPRESEARCH_MAX_DEPTH", "3")),
             save_as_html=os.getenv("DEEPRESEARCH_SAVE_AS_HTML", "true").lower()
@@ -73,24 +50,16 @@ class CLIConfig:
         )
 
     def get_save_path(self) -> Path:
-        """获取保存路径的Path对象。"""
         return Path(self.save_path).expanduser().resolve()
 
     def get_history_path(self) -> Path | None:
-        """获取历史文件路径。"""
         if self.history_file:
             return Path(self.history_file).expanduser().resolve()
         return None
 
     def get_config_dir(self) -> Path:
-        """获取配置目录的Path对象。
-
-        Returns:
-            配置目录的Path对象。如果config_dir为None，则返回默认路径
-        """
         if self.config_dir:
             return Path(self.config_dir).expanduser().resolve()
-        # 默认配置目录：用户主目录下的 .deepresearch 文件夹
         return Path.home() / ".deepresearch"
 
 
@@ -101,18 +70,6 @@ def get_cli_config(
     log_level: str | None = None,
     config_dir: str | None = None,
 ) -> CLIConfig:
-    """获取CLI配置，支持从环境变量和参数合并。
-
-    Args:
-        max_depth: 最大搜索深度
-        save_as_html: 是否保存为HTML
-        save_path: 保存路径
-        log_level: 日志级别
-        config_dir: 配置文件目录路径
-
-    Returns:
-        合并后的CLI配置
-    """
     config = CLIConfig.from_env()
 
     kwargs: dict[str, object] = {}
