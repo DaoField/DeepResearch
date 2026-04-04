@@ -1,9 +1,10 @@
 [project]
 name = "DeepResearch"
-version = "1.1.1"
+dynamic = ["version"]
 description = "Typist is a deep research framework based on the collaborative work of multiple LLMs. It integrates search tools to conduct deep research on topics and ultimately outputs visualized research reports."
 authors = [
     {name = "CzChu", email = "czchu2@iflytek.com"},
+    {name = "xinetzone", email = "735613050@qq.com"},
 ]
 requires-python = ">=3.10,<4.0"
 readme = "README.md"
@@ -58,9 +59,9 @@ dependencies = [
 
 [project.optional-dependencies]
 doc = [
-    "sphinx>=7.3",
-    "sphinx-markdown-tables>=0.0.17",
-    "sphinxcontrib-mermaid>=0.7.1",
+    "sphinx",
+    "sphinx-markdown-tables",
+    "sphinxcontrib-mermaid",
     "xyzstyle",
     "myst-nb",
     "markdown-it-py",
@@ -69,12 +70,23 @@ doc = [
 ]
 
 dev = [
-    "invoke>=2.2",
-    "black>=24.0",
-    "flake8>=7.0",
-    "mypy>=1.0",
+    "invoke",
+    "black",
+    "flake8",
+    "mypy",
 ]
 
+[project.scripts]
+deepresearch = "deepresearch.cli.utils:main"
+
 [build-system]
-requires = ["setuptools>=61.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["scikit-build-core>=0.10", "setuptools_scm>=8.0"]
+build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+wheel.install-dir = "src"
+minimum-version = "0.10"
+metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
+
+[tool.setuptools_scm]
+write_to = "src/deepresearch/_version.py"

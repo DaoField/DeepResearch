@@ -1,0 +1,66 @@
+name: Documentation Improvement
+description: 改进或修正文档内容
+title: "[Docs] "
+labels: ["documentation", "triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢您帮助我们改进 DeepResearch 的文档！
+
+  - type: checkboxes
+    id: duplicates
+    attributes:
+      label: 是否已经搜索过类似的文档相关 issue？
+      description: 请先搜索现有 issues，确认是否已经有相关的文档问题被报告过。
+      options:
+        - label: 我已经搜索过现有 issues，没有发现类似问题
+          required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: 文档问题类型
+      description: 请选择您报告的问题类型。
+      options:
+        - 错别字或语法错误
+        - 内容过时
+        - 缺失内容
+        - 内容不够清晰
+        - 代码示例错误
+        - 格式或结构问题
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: location
+    attributes:
+      label: 文档位置
+      description: 请提供问题所在的具体位置（URL 或文件路径）。
+      placeholder: e.g. https://github.com/.../README.md#section 或 doc/user_guide.md:25
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem-description
+    attributes:
+      label: 问题描述
+      description: 请清晰简洁地描述文档中存在的问题。
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggested-content
+    attributes:
+      label: 建议的内容
+      description: 请提供您建议的修改或补充内容。
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: 其他补充信息
+      description: 请提供任何其他可能有助于我们理解问题的信息。

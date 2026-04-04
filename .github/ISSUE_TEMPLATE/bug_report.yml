@@ -1,0 +1,82 @@
+name: Bug Report
+description: 报告一个问题或错误，帮助我们改进 DeepResearch
+title: "[Bug] "
+labels: ["bug", "triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢您抽出时间来报告这个问题！请填写以下信息，帮助我们更好地理解和修复这个问题。
+
+  - type: checkboxes
+    id: duplicates
+    attributes:
+      label: 是否已经搜索过类似的 issue？
+      description: 请先搜索现有 issues，确认是否已经有相关问题被报告过。
+      options:
+        - label: 我已经搜索过现有 issues，没有发现类似问题
+          required: true
+
+  - type: textarea
+    id: problem-description
+    attributes:
+      label: 问题描述
+      description: 请清晰简洁地描述遇到的问题。
+      placeholder: 在运行 xxx 命令时，程序出现 xxx 错误...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: 复现步骤
+      description: 请详细描述复现该问题的步骤。
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: 期望行为
+      description: 请描述您期望的正确行为应该是怎样的。
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: 实际行为
+      description: 请描述实际发生的情况。
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment-info
+    attributes:
+      label: 环境信息
+      description: 请提供您的运行环境信息。
+      value: |
+        - 操作系统: [e.g. Windows 11, macOS 14, Ubuntu 22.04]
+        - Python 版本: [e.g. 3.9, 3.10, 3.11]
+        - DeepResearch 版本: [e.g. 1.0.0]
+        - 安装方式: [e.g. pip, git clone]
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志或错误信息
+      description: 如果有，请提供完整的错误日志或堆栈信息。
+      render: shell
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: 其他补充信息
+      description: 请提供任何其他可能有助于我们理解问题的信息，如截图、配置文件等。

@@ -14,20 +14,62 @@ The list below mentions some contributions you can make, but it is not a complet
 
 ## Development Setup
 
-1. Fork the repository
-2. Clone your fork:
-   ```bash
-   git clone git@github.com:<yourname>/DeepResearch.git
-   cd DeepResearch
-   ```
-3. Set up your development environment and run the project:
-   ```bash
-   # Install Poetry
-   curl -sSL https://install.python-poetry.org | python3 -
-   poetry install
-   poetry env activate
-   poetry run python -m src.run
-   ```
+### 环境要求
+
+- Python版本: >= 3.10, < 4.0
+- 构建系统: scikit-build-core >= 0.10
+
+### 1. Fork and Clone
+
+```bash
+git clone git@github.com:<yourname>/DeepResearch.git
+cd DeepResearch
+```
+
+### 2. 安装开发依赖
+
+本项目使用 [scikit-build-core](https://scikit-build-core.readthedocs.io/) 作为构建系统，支持以下安装方式：
+
+#### 方式一：使用 pip 进行开发安装（推荐）
+
+```bash
+# 创建虚拟环境（可选但推荐）
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# 或: venv\Scripts\activate  # Windows
+
+# 以可编辑模式安装，包含开发依赖
+pip install -e ".[dev]"
+```
+
+
+
+### 3. 验证安装
+
+安装完成后，验证开发环境是否配置正确：
+
+```bash
+# 检查项目是否正确安装
+python -c "import deepresearch; print(deepresearch.__version__)"
+
+# 运行测试套件
+make test
+```
+
+## 开发依赖说明
+
+项目的开发依赖包括以下工具：
+
+- **invoke**: 任务运行工具
+- **black**: 代码格式化工具
+- **flake8**: 代码风格检查工具
+- **mypy**: 静态类型检查工具
+
+安装开发依赖：
+
+```bash
+pip install -e ".[dev]"
+```
 
 ## Development Process
 
@@ -73,7 +115,7 @@ The list below mentions some contributions you can make, but it is not a complet
 - Write descriptive docstrings
 - Keep functions and methods focused and single-purpose
 - Comment complex logic
-- Python version requirement: >= 3.10
+- Python version requirement: >= 3.10, < 4.0
 
 ## Testing
 Run the test suite:

@@ -12,9 +12,10 @@
 
 ### 2. 软件要求
 
-- **Python**：3.10 或更高版本
+- **Python**：>=3.10,<4.0
 - **pip**：20.0 或更高版本
 - **Git**：2.0 或更高版本
+- **CMake**：项目根目录需要包含 `CMakeLists.txt` 文件（scikit-build-core 构建要求）
 
 ## 安装步骤
 
@@ -25,23 +26,38 @@ git clone https://github.com/iflytek/DeepResearch.git
 cd DeepResearch
 ```
 
-### 2. 安装依赖
+### 2. 安装构建依赖
 
-#### 使用 pip 安装
+本项目使用 **scikit-build-core** 作为构建系统，在安装前需要确保以下构建依赖已安装：
+
+```bash
+pip install "scikit-build-core>=0.10" "setuptools_scm>=8.0"
+```
+
+### 3. 安装项目
+
+#### 使用 pip 安装（推荐）
 
 ```bash
 pip install -e .
 ```
 
-#### 使用 poetry 安装
+> **注意**：pip 安装命令与 scikit-build-core 构建后端完全兼容，会自动处理 CMake 构建过程。
 
-```bash
-poetry install
-```
 
-### 3. 配置系统
 
-#### 3.1 配置 LLM
+### 构建系统说明
+
+本项目采用 **scikit-build-core** 作为构建后端，主要特点：
+
+- **构建后端**：`scikit_build_core.build`
+- **构建要求**：`scikit-build-core>=0.10`, `setuptools_scm>=8.0`
+- **版本管理**：使用 `setuptools_scm` 动态管理版本号
+- **安装目录**：wheel 安装目录设置为 `src`
+
+### 4. 配置系统
+
+#### 4.1 配置 LLM
 
 编辑 `config/llms.toml` 文件，配置 LLM 的 API 密钥和其他参数：
 
@@ -77,7 +93,7 @@ model="astron-code-latest"
 api_key="your_api_key"
 ```
 
-#### 3.2 配置搜索工具
+#### 4.2 配置搜索工具
 
 编辑 `config/search.toml` 文件，配置搜索工具的 API 密钥：
 
@@ -95,7 +111,13 @@ tavily_api_key = "your_tavily_api_key"
 ### 1. 命令行运行
 
 ```bash
-python -m deepresearch "人工智能的发展趋势"
+deepresearch "人工智能的发展趋势"
+```
+
+或者使用 Python 模块方式运行：
+
+```bash
+python -m deepresearch.cli "人工智能的发展趋势"
 ```
 
 ### 2. 作为模块导入
@@ -212,11 +234,7 @@ git pull
 pip install -e .
 ```
 
-#### 使用 poetry 更新
 
-```bash
-poetry install
-```
 
 ### 3. 更新配置
 

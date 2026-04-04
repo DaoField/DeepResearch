@@ -22,6 +22,9 @@ extensions = [
     'myst_parser',
     'sphinxcontrib.mermaid',
     'sphinx_design',
+    # 代码相关
+    "sphinx.ext.viewcode",  # 在文档中展示源码并提供跳转
+    'sphinx_copybutton',  # 为代码块提供“一键复制”按钮
 ]
 
 templates_path = ['_templates']

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 问题讨论
+    url: https://github.com/iflytek/DeepResearch/discussions
+    about: 请在此处进行问题讨论、寻求帮助或分享想法
+  - name: 使用指南
+    url: https://github.com/iflytek/DeepResearch/blob/main/doc/user_guide/user_guide.md
+    about: 查看官方使用指南
+  - name: 贡献指南
+    url: https://github.com/iflytek/DeepResearch/blob/main/CONTRIBUTING.md
+    about: 了解如何为项目做贡献

@@ -106,7 +106,7 @@ DeepResearch/
 │   ├── reports/                # 测试报告
 │   │   └── v1.1.1/            # v1.1.1 版本测试报告
 │   └── utils/                  # 测试工具
-├── pyproject.toml              # 项目配置（Poetry）
+├── pyproject.toml              # 项目配置
 ├── tasks.py                    # 任务管理脚本
 ├── README.md                   # 项目说明
 ├── AGENTS.md                   # Agent 说明
@@ -165,7 +165,7 @@ DeepResearch/
 | 技术选型 | 优势 | 潜在问题 |
 |----------|------|----------|
 | **LangGraph** | 状态机模式清晰，支持复杂工作流编排 | 学习曲线较陡，调试复杂 |
-| **Poetry** | 依赖管理规范，支持虚拟环境 | 部分环境安装较慢 |
+| **pip** | 依赖管理规范，支持虚拟环境 | 部分环境安装较慢 |
 | **TOML 配置** | 可读性好，支持复杂结构 | 缺少类型检查 |
 | **ThreadPoolExecutor** | 简单易用，适合 I/O 密集型任务 | GIL 限制，不适合 CPU 密集型 |
 

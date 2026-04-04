@@ -11,6 +11,11 @@ from deepresearch.errors import (
     ReportError,
 )
 
+try:
+    from deepresearch._version import __version__
+except ImportError:
+    __version__ = "unknown"
+
 __all__ = [
     "build_agent",
     "configure_logging",
@@ -20,4 +25,5 @@ __all__ = [
     "SearchError",
     "LLMError",
     "ReportError",
+    "__version__",
 ]
