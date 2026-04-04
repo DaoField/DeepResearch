@@ -1,0 +1,135 @@
+name: Nuitka Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            ext: ''
+          - os: windows-latest
+            platform: windows
+            ext: '.exe'
+          - os: macos-latest
+            platform: macos
+            ext: ''
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python 3.14
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.14"
+        cache: 'pip'
+        cache-dependency-path: pyproject.toml
+
+    - name: Install project dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e "."
+
+    - name: Install Nuitka
+      run: pip install nuitka
+
+    - name: Setup C compiler (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc g++ patchelf
+
+    - name: Setup C compiler (Windows)
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Setup C compiler (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install gcc
+
+    - name: Build with Nuitka (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: |
+        python -m nuitka \
+          --standalone \
+          --onefile \
+          --output-dir=dist \
+          --output-filename=deepresearch-${{ matrix.platform }}${{ matrix.ext }} \
+          --enable-plugin=pydantic \
+          --include-package=deepresearch \
+          --include-package-data=deepresearch \
+          --assume-yes-for-downloads \
+          src/deepresearch/cli/__main__.py
+
+    - name: Build with Nuitka (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        python -m nuitka `
+          --standalone `
+          --onefile `
+          --output-dir=dist `
+          --output-filename=deepresearch-${{ matrix.platform }}${{ matrix.ext }} `
+          --enable-plugin=pydantic `
+          --include-package=deepresearch `
+          --include-package-data=deepresearch `
+          --assume-yes-for-downloads `
+          src/deepresearch/cli/__main__.py
+
+    - name: Verify build output
+      id: verify
+      shell: pwsh
+      run: |
+        $outputFile = "dist/deepresearch-${{ matrix.platform }}${{ matrix.ext }}"
+        if (Test-Path $outputFile) {
+          Write-Output "✅ Build successful: $outputFile"
+          $fileSize = (Get-Item $outputFile).Length / 1MB
+          Write-Output "File size: $([math]::Round($fileSize, 2)) MB"
+          Write-Output "build_status=success" >> $env:GITHUB_OUTPUT
+        } else {
+          Write-Output "❌ Build failed: Output file not found"
+          Write-Output "build_status=failed" >> $env:GITHUB_OUTPUT
+          exit 1
+        }
+
+    - name: Upload build artifact
+      if: steps.verify.outputs.build_status == 'success'
+      uses: actions/upload-artifact@v4
+      with:
+        name: deepresearch-${{ matrix.platform }}
+        path: dist/deepresearch-${{ matrix.platform }}${{ matrix.ext }}
+        retention-days: 30
+        if-no-files-found: error
+
+    - name: Build summary
+      if: always()
+      shell: pwsh
+      run: |
+        Write-Output "## Build Summary" >> $env:GITHUB_STEP_SUMMARY
+        Write-Output "" >> $env:GITHUB_STEP_SUMMARY
+        Write-Output "| Platform | Status |" >> $env:GITHUB_STEP_SUMMARY
+        Write-Output "|----------|--------|" >> $env:GITHUB_STEP_SUMMARY
+        if ("${{ steps.verify.outputs.build_status }}" -eq "success") {
+          Write-Output "| ${{ matrix.platform }} | ✅ Success |" >> $env:GITHUB_STEP_SUMMARY
+        } else {
+          Write-Output "| ${{ matrix.platform }} | ❌ Failed |" >> $env:GITHUB_STEP_SUMMARY
+        }
