@@ -25,7 +25,7 @@ class JinaSearchClient(SearchClient):
             "X-Timeout": str(search_config.timeout),
         }
 
-    def search(self, query: str, top_n: int) -> List[SearchResult]:
+    def search(self, query: str, top_n: int) -> list[SearchResult]:
         """
         Perform a web search and retrieve results
 
@@ -36,7 +36,7 @@ class JinaSearchClient(SearchClient):
         Returns:
             List of SearchResult objects containing search information
         """
-        search_results: List[SearchResult] = []
+        search_results: list[SearchResult] = []
         if not query or not query.strip():
             return search_results
 

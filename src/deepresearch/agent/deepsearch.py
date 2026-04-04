@@ -8,7 +8,7 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime
-from typing import *
+from typing import Optional
 
 import json_repair
 
@@ -30,8 +30,8 @@ class Knowledge:
     """Data structure to hold knowledge"""
 
     insight: str
-    snippets: List[str]
-    references: List[search.SearchResult]
+    snippets: list[str]
+    references: list[search.SearchResult]
 
 
 @dataclass(kw_only=True)
@@ -47,13 +47,13 @@ class EvalResult:
 class DeepSearchResult:
     """Data structure to hold deep search result information"""
 
-    query: List[str]
-    all_knowledge: List[Knowledge]
-    used_knowledge: List[Knowledge]
-    re_knowledge: List[Knowledge]
+    query: list[str]
+    all_knowledge: list[Knowledge]
+    used_knowledge: list[Knowledge]
+    re_knowledge: list[Knowledge]
     answer: str
-    search_result: Dict[str, List[search.SearchResult]]
-    eval_result: List[EvalResult]
+    search_result: dict[str, list[search.SearchResult]]
+    eval_result: list[EvalResult]
     children: DeepSearchResult
 
 
@@ -64,7 +64,7 @@ class DeepSearch:
         self,
         title: str,
         chapter: str,
-        sub_chapter: List[str],
+        sub_chapter: list[str],
         chapter_outline: str,
         max_depth: int = 2,
         search_top_n: int = 3,
@@ -89,12 +89,12 @@ class DeepSearch:
 
     def _deep_search(
         self,
-        query: List[str],
+        query: list[str],
         depth: int,
-        judge_results: List[Judge],
+        judge_results: list[Judge],
         outline: str,
         pre_answer: str,
-        pre_knowledge: Set[str],
+        pre_knowledge: set[str],
     ) -> DeepSearchResult:
         # 输入验证
         if not query:
@@ -110,7 +110,7 @@ class DeepSearch:
             )
 
         search_results = self._search_all(query)
-        all_search: Dict[str, List[search.SearchResult]] = {}
+        all_search: dict[str, list[search.SearchResult]] = {}
         for q, search_result in search_results.items():
             for result in search_result:
                 if not result.url or result.url in pre_knowledge:
@@ -168,8 +168,8 @@ class DeepSearch:
         outline += f"\n{self._chapter_outline}\n"
         return outline
 
-    def _gen_search_query(self, outline: str) -> List[str]:
-        search_query: List[str] = []
+    def _gen_search_query(self, outline: str) -> list[str]:
+        search_query: list[str] = []
         try:
             text = llm(
                 llm_type="query_generation",
@@ -189,8 +189,8 @@ class DeepSearch:
             logger.warning(f"Failed to generate search query: {e}")
             return []
 
-    def _judge_query(self, query: str) -> List[Judge]:
-        judge_result: List[Judge] = []
+    def _judge_query(self, query: str) -> list[Judge]:
+        judge_result: list[Judge] = []
         try:
             text = llm(
                 llm_type="evaluate",
@@ -215,15 +215,15 @@ class DeepSearch:
 
         return judge_result
 
-    def _search_all(self, query: List[str]) -> Dict[str, List[search.SearchResult]]:
-        search_result: Dict[str, List[search.SearchResult]] = {}
+    def _search_all(self, query: list[str]) -> dict[str, list[search.SearchResult]]:
+        search_result: dict[str, list[search.SearchResult]] = {}
         if not query:
             return search_result
 
         # Parallel search with bounded concurrency to avoid API rate limiting
         max_workers = min(len(query), 5)
 
-        def _single_search(q: str) -> Tuple[str, List[search.SearchResult]]:
+        def _single_search(q: str) -> tuple[str, list[search.SearchResult]]:
             try:
                 colored_print(f"Searching: {q}", color="purple")
                 results = self._search_client.search(q, self._search_top_n)
@@ -249,13 +249,13 @@ class DeepSearch:
         return search_result
 
     def _extract_all_knowledge(
-        self, outline: str, search_results: Dict[str, List[search.SearchResult]]
-    ) -> List[Knowledge]:
+        self, outline: str, search_results: dict[str, list[search.SearchResult]]
+    ) -> list[Knowledge]:
         extract_limit = 32000
-        knowledge_results: List[Knowledge] = []
+        knowledge_results: list[Knowledge] = []
         for search_result in search_results.values():
             content_len = 0
-            extract_search: List[search.SearchResult] = []
+            extract_search: list[search.SearchResult] = []
             for result in search_result:
                 if not result.content:
                     continue
@@ -279,10 +279,10 @@ class DeepSearch:
     def _extract_knowledge(
         self,
         outline: str,
-        search_results: List[search.SearchResult],
+        search_results: list[search.SearchResult],
         extract_limit: int,
-    ) -> List[Knowledge]:
-        knowledge_results: List[Knowledge] = []
+    ) -> list[Knowledge]:
+        knowledge_results: list[Knowledge] = []
         if not search_results:
             return knowledge_results
 
@@ -305,7 +305,7 @@ class DeepSearch:
 
             extract_result = json_repair.loads(text)
             for knowledge in extract_result.get("knowledge", []):
-                reference: List[search.SearchResult] = []
+                reference: list[search.SearchResult] = []
                 snippets = knowledge.get("snippets", [])
                 for id in self._load_id_array(snippets):
                     if 0 <= id < len(search_results):
@@ -326,8 +326,8 @@ class DeepSearch:
         return knowledge_results
 
     def _gen_answer(
-        self, outline: str, knowledge: List[Knowledge]
-    ) -> tuple[List[Knowledge], str]:
+        self, outline: str, knowledge: list[Knowledge]
+    ) -> tuple[list[Knowledge], str]:
         if not knowledge:
             return [], "<no knowledge>"
 
@@ -346,7 +346,7 @@ class DeepSearch:
                 return [], "<no answer>"
             answer_result = json_repair.loads(text)
             answer = answer_result.get("answer", "<no answer>")
-            used_knowledge: List[Knowledge] = []
+            used_knowledge: list[Knowledge] = []
             quote_ids = answer_result.get("quote_ids", [])
             for id in self._load_id_array(quote_ids):
                 if 0 <= id < len(knowledge):
@@ -359,15 +359,15 @@ class DeepSearch:
         return used_knowledge, answer
 
     def _evaluate(
-        self, outline: str, answer: str, judge_result: List[Judge]
-    ) -> List[EvalResult]:
-        eval_results: List[EvalResult] = []
+        self, outline: str, answer: str, judge_result: list[Judge]
+    ) -> list[EvalResult]:
+        eval_results: list[EvalResult] = []
         for judge in judge_result:
             eval_results.append(self._evaluate_one(outline, answer, judge))
         return eval_results
 
     def _evaluate_one(self, outline: str, answer: str, judge: Judge) -> EvalResult:
-        prompt: List = None
+        prompt: list = None
         match judge.name:
             case "completeness":
                 prompt = apply_prompt_template(
@@ -400,8 +400,8 @@ class DeepSearch:
         return EvalResult(eval_type=judge.name, pass_label=passed, reason=think)
 
     def _gen_research_query(
-        self, query: List[str], outline: str, answer: str, unpass_eval: List[EvalResult]
-    ) -> List[str]:
+        self, query: list[str], outline: str, answer: str, unpass_eval: list[EvalResult]
+    ) -> list[str]:
         try:
             text = llm(
                 llm_type="query_generation",
@@ -429,7 +429,7 @@ class DeepSearch:
 
     def _get_all_used_knowledge(
         self, result: Optional[DeepSearchResult]
-    ) -> List[Knowledge]:
+    ) -> list[Knowledge]:
         """递归获取所有使用过的知识，避免循环引用"""
         if result is None:
             return []
@@ -446,7 +446,7 @@ class DeepSearch:
 
         return all_knowledge
 
-    def _to_id_array(self, ids: object) -> List[str]:
+    def _to_id_array(self, ids: object) -> list[str]:
         if not ids:
             return []
         try:
@@ -454,19 +454,19 @@ class DeepSearch:
                 ids = json.loads(str(ids)) or []
             if isinstance(ids, list):
                 ids = list(ids)
-            result: List[str] = []
+            result: list[str] = []
             for id in ids:
                 try:
                     num = str(id)
                     result.append(num)
-                except ValueError, TypeError:
+                except ValueError | TypeError:
                     continue
             return result
         except (ValueError, TypeError, json.JSONDecodeError) as e:
             logger.debug(f"Failed to parse id array: {e}")
             return []
 
-    def _load_id_array(self, ids: object) -> List[int]:
+    def _load_id_array(self, ids: object) -> list[int]:
         if not ids:
             return []
         try:
@@ -474,12 +474,12 @@ class DeepSearch:
                 ids = json.loads(str(ids)) or []
             if isinstance(ids, list):
                 ids = list(ids)
-            result: List[int] = []
+            result: list[int] = []
             for id in ids:
                 try:
                     num = int(str(id))
                     result.append(num)
-                except ValueError, TypeError:
+                except ValueError | TypeError:
                     continue
             return result
         except (ValueError, TypeError, json.JSONDecodeError) as e:

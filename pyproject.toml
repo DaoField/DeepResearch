@@ -31,7 +31,7 @@ dependencies = [
     "pydantic-settings==2.11.0",
     "python-dotenv==1.1.1",
     "python-multipart==0.0.20",
-    "pywin32==311",
+    "pywin32",
     "referencing==0.36.2",
     "regex==2025.9.18",
     "requests==2.32.5",

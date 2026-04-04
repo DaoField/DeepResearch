@@ -572,7 +572,7 @@ def load_config(
             try:
                 file_config = config_class.from_file(get_config_dir() / filename)
                 config = config.merge(file_config, ConfigSource.FILE)
-            except ConfigError, FileNotFoundError:
+            except ConfigError | FileNotFoundError:
                 pass  # 文件不存在时使用默认值
 
         # 从环境变量加载

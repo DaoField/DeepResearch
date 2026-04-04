@@ -147,7 +147,7 @@ def outline_knowledge_2_str(outline_knowledge, max_length=100000):
 
     try:
         return json.dumps(result, ensure_ascii=False)
-    except TypeError, ValueError:
+    except TypeError | ValueError:
         return "[]"
 
 

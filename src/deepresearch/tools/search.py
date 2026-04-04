@@ -1,8 +1,6 @@
 # Copyright (c) 2025 IFLYTEK Ltd.
 # SPDX-License-Identifier: Apache 2.0 License
 
-from typing import List
-
 from deepresearch.config.search_config import search_config
 from deepresearch.tools import _search
 from deepresearch.tools._jina import JinaSearchClient
@@ -24,7 +22,7 @@ class SearchClient:
         else:
             raise ValueError(f"Unknown search engine: {search_config.engine}")
 
-    def search(self, query: str, top_n: int) -> List[SearchResult]:
+    def search(self, query: str, top_n: int) -> list[SearchResult]:
         """
         Perform a web search and retrieve results
 

@@ -107,7 +107,7 @@ class Chapter:
                 ],
                 ensure_ascii=False,
             )
-        except TypeError, ValueError:
+        except TypeError | ValueError:
             return "[]"
 
 

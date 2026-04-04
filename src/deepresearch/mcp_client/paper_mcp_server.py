@@ -9,8 +9,6 @@ four Tools
   2. pubmed_search / pubmed_read
 """
 
-from __future__ import annotations
-
 import asyncio
 import json
 import os
