@@ -1,0 +1,129 @@
+name: Validate GitHub Configurations
+
+on:
+  push:
+    paths:
+      - '.github/**'
+    branches: [ main ]
+  pull_request:
+    paths:
+      - '.github/**'
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  validate-workflows:
+    name: Validate Workflow Files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check workflow syntax
+        uses: reviewdog/action-actionlint@v1
+        with:
+          level: error
+          reporter: github-pr-review
+
+  validate-issue-templates:
+    name: Validate Issue Templates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Validate YAML syntax
+        run: |
+          python -c "
+          import yaml
+          import sys
+          from pathlib import Path
+
+          template_dir = Path('.github/ISSUE_TEMPLATE')
+          errors = []
+
+          for file in template_dir.glob('*.yml'):
+              try:
+                  with open(file, 'r', encoding='utf-8') as f:
+                      yaml.safe_load(f)
+                  print(f'✅ {file.name} - 有效')
+              except yaml.YAMLError as e:
+                  errors.append(f'❌ {file.name} - YAML 错误: {e}')
+              except Exception as e:
+                  errors.append(f'❌ {file.name} - 错误: {e}')
+
+          if errors:
+              print('\n发现以下错误:')
+              for error in errors:
+                  print(error)
+              sys.exit(1)
+          else:
+              print('\n所有模板文件验证通过！')
+          "
+
+  validate-dependabot:
+    name: Validate Dependabot Config
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Validate dependabot.yml
+        run: |
+          python -c "
+          import yaml
+          import sys
+
+          try:
+              with open('.github/dependabot.yml', 'r', encoding='utf-8') as f:
+                  config = yaml.safe_load(f)
+              
+              assert 'version' in config, '缺少 version 字段'
+              assert config['version'] == 2, 'version 必须是 2'
+              assert 'updates' in config, '缺少 updates 字段'
+              assert isinstance(config['updates'], list), 'updates 必须是列表'
+              assert len(config['updates']) > 0, 'updates 不能为空'
+
+              for i, update in enumerate(config['updates']):
+                  assert 'package-ecosystem' in update, f'更新配置 {i+1} 缺少 package-ecosystem'
+                  assert 'directory' in update, f'更新配置 {i+1} 缺少 directory'
+                  assert 'schedule' in update, f'更新配置 {i+1} 缺少 schedule'
+
+              print('✅ dependabot.yml 验证通过')
+          except Exception as e:
+              print(f'❌ dependabot.yml 验证失败: {e}')
+              sys.exit(1)
+          "
+
+  validate-codeowners:
+    name: Validate CODEOWNERS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check CODEOWNERS syntax
+        run: |
+          if [ -f .github/CODEOWNERS ]; then
+            echo "✅ CODEOWNERS 文件存在"
+            while IFS= read -r line || [[ -n "$line" ]]; do
+              [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+              if [[ ! "$line" =~ @ ]]; then
+                echo "⚠️ 警告: 以下行可能缺少代码所有者: $line"
+              fi
+            done < .github/CODEOWNERS
+            echo "✅ CODEOWNERS 语法检查完成"
+          else
+            echo "❌ CODEOWNERS 文件不存在"
+            exit 1
+          fi

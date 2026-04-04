@@ -1,18 +1,20 @@
 # Copyright (c) 2025 IFLYTEK Ltd.
 # SPDX-License-Identifier: Apache 2.0 License
 
+import logging
 from typing import *
 
 import tavily
-import logging
 
 from deepresearch.config.search_config import search_config
 from deepresearch.tools._search import SearchClient, SearchResult
 
 logger = logging.getLogger(__name__)
 
+
 class TavilySearchClient(SearchClient):
     """Client for searching web using Tavily SDK"""
+
     def __init__(self):
         self._client = tavily.TavilyClient(api_key=search_config.tavily_api_key)
 
@@ -30,30 +32,33 @@ class TavilySearchClient(SearchClient):
         search_results: List[SearchResult] = []
         if not query or not query.strip():
             return search_results
-            
+
         try:
             search_response = self._client.search(
                 query=query.strip(),
                 max_results=min(max(top_n, 1), 20),  # 限制范围 1-20
-                include_raw_content=True
+                include_raw_content=True,
             )
-            for i, search_result in enumerate(search_response.get('results', [])):
-                url = search_result.get('url', '').strip()
+            for i, search_result in enumerate(search_response.get("results", [])):
+                url = search_result.get("url", "").strip()
                 if not url:  # 跳过无效URL
                     continue
-                search_results.append(SearchResult(
-                    url=url,
-                    title=search_result.get('title', '') or "Untitled",
-                    summary=search_result.get('content', ''),
-                    content=search_result.get('raw_content', ''),
-                    date='',
-                    id=i
-                ))
+                search_results.append(
+                    SearchResult(
+                        url=url,
+                        title=search_result.get("title", "") or "Untitled",
+                        summary=search_result.get("content", ""),
+                        content=search_result.get("raw_content", ""),
+                        date="",
+                        id=i,
+                    )
+                )
 
         except Exception as e:
             logger.error(f"Error in Tavily search: {e}")
-        
+
         return search_results
+
 
 # test
 if __name__ == "__main__":

@@ -1,17 +1,19 @@
 # Copyright (c) 2025 iFLYTEK CO.,LTD.
 # SPDX-License-Identifier: Apache 2.0 License
-from langchain_core.runnables import RunnableConfig
 
-from .message import ReportState
+import logging
+from datetime import datetime
+
+from langchain_core.messages import AIMessage, HumanMessage
+from langgraph.types import Command
+
+from deepresearch.data.category import get_analysis_data
 from deepresearch.llms.llm import llm
 from deepresearch.prompts.template import apply_prompt_template
 from deepresearch.utils import parse_model_res
 from deepresearch.utils.print_util import colored_print
-from langgraph.types import Command
-from langchain_core.messages import AIMessage, HumanMessage
-from deepresearch.data.category import get_analysis_data
-import logging
-from datetime import datetime
+
+from .message import ReportState
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +43,7 @@ def preprocess_node(state: ReportState):
                     content = str(msg)
                     converted = HumanMessage(content=content)
                     converted_messages.append(converted)
-                except Exception as e:
+                except Exception:
                     # 无法转换的情况（如特殊对象），直接丢弃
                     continue
     elif isinstance(messages, dict):
@@ -57,13 +59,19 @@ def preprocess_node(state: ReportState):
             content = str(messages)
             converted = HumanMessage(content=content)
             converted_messages.append(converted)
-        except Exception as e:
+        except Exception:
             # For situations where conversion is not possible (such as special objects), discard them directly
             pass
     if not converted_messages:
         return Command(goto="__end__")
     elif len(converted_messages) == 1:
-        return Command(update={"messages": converted_messages, "topic": converted_messages[0].content}, goto="classify")
+        return Command(
+            update={
+                "messages": converted_messages,
+                "topic": converted_messages[0].content,
+            },
+            goto="classify",
+        )
     elif len(converted_messages) == 3:
         return Command(update={"messages": converted_messages}, goto="rewrite")
     # Starting from the third round, only the model will be called to reply
@@ -73,53 +81,52 @@ def preprocess_node(state: ReportState):
 
 def rewrite_node(state: ReportState):
     """Rewrite user requirements based on interaction history to obtain report topics"""
-    rewrite = llm(llm_type="basic", messages=apply_prompt_template(
-        prompt_name="prep/rewrite",
-        state={
-            "now": datetime.now().strftime("%a %b %d %Y"),
-            "messages": state.get("messages")
-        }
-    ), stream=False)
+    rewrite = llm(
+        llm_type="basic",
+        messages=apply_prompt_template(
+            prompt_name="prep/rewrite",
+            state={
+                "now": datetime.now().strftime("%a %b %d %Y"),
+                "messages": state.get("messages"),
+            },
+        ),
+        stream=False,
+    )
     rewrite = parse_model_res.extract_xml_content(rewrite, "rewrite")
     if rewrite:
-        return Command(
-            update={
-                "topic": rewrite[0]
-            }
-        )
+        return Command(update={"topic": rewrite[0]})
     else:
         topic = ""
         for message in state.get("messages"):
             topic += message.type + ":" + message.content + "\n"
-        return Command(
-            update={
-                "topic": topic
-            }
-        )
+        return Command(update={"topic": topic})
 
 
 def classify_node(state: ReportState):
     """Classify user questions to write reports on different topics"""
-    classify = llm(llm_type="basic", messages=apply_prompt_template(
-        prompt_name="prep/classify",
-        state={
-            "query": state.get("topic")
-        }
-    ), stream=False)
+    classify = llm(
+        llm_type="basic",
+        messages=apply_prompt_template(
+            prompt_name="prep/classify", state={"query": state.get("topic")}
+        ),
+        stream=False,
+    )
     domain = parse_model_res.extract_xml_content(classify, "domain")
     if domain:
         domain = domain[0]
     else:
-        logger.error(f"Classify result has no tag <domain>.")
+        logger.error("Classify result has no tag <domain>.")
         return Command(
             goto="generic",
         )
     # Only provide one round of clarification, and generate a report directly for the second round.
     try:
         logic, details = get_analysis_data(domain)
-    except ValueError as e:
+    except ValueError:
         # If the report details for the corresponding category cannot be found, reply with the generic model
-        logger.warning(f"Currently, report generation in the {domain} domain is not supported.")
+        logger.warning(
+            f"Currently, report generation in the {domain} domain is not supported."
+        )
         return Command(
             goto="generic",
         )
@@ -145,13 +152,17 @@ def classify_node(state: ReportState):
 
 def clarify_node(state: ReportState):
     """Clarify user issues, only clarify once"""
-    clarify = llm(llm_type="clarify", messages=apply_prompt_template(
-        prompt_name="prep/clarify",
-        state={
-            "query": state.get("topic"),
-            "now": datetime.now().strftime("%a %b %d %Y"),
-        }
-    ), stream=False)
+    clarify = llm(
+        llm_type="clarify",
+        messages=apply_prompt_template(
+            prompt_name="prep/clarify",
+            state={
+                "query": state.get("topic"),
+                "now": datetime.now().strftime("%a %b %d %Y"),
+            },
+        ),
+        stream=False,
+    )
     if parse_model_res.extract_xml_content(clarify, "query"):
         return Command(
             goto="outline_search",
@@ -161,9 +172,7 @@ def clarify_node(state: ReportState):
         colored_print(confirm[0], color="green", end="")
         return Command(
             update={
-              "output": {
-                  "message": confirm[0]
-              },
+                "output": {"message": confirm[0]},
             },
             goto="__end__",
         )
@@ -179,7 +188,7 @@ def generic_node(state: ReportState):
         messages = state.get("messages", [])
         if not messages:
             return {"output": {"message": "No messages to process"}}
-            
+
         for think, content in llm(llm_type="basic", messages=messages, stream=True):
             if think:
                 colored_print(think, color="orange", end="")

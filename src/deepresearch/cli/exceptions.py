@@ -35,7 +35,9 @@ class UserInterruptError(CLIError):
 class AgentExecutionError(CLIError):
     """Agent 执行错误。"""
 
-    def __init__(self, message: str, *, original_error: Exception | None = None) -> None:
+    def __init__(
+        self, message: str, *, original_error: Exception | None = None
+    ) -> None:
         super().__init__(message, exit_code=3)
         self.original_error = original_error
 

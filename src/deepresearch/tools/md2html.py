@@ -1,35 +1,37 @@
 # Copyright (c) 2025 IFLYTEK Ltd.
 # SPDX-License-Identifier: Apache 2.0 License
 
+from html.parser import HTMLParser
 from typing import *
-from datetime import datetime
 
 import mistune
-from html.parser import HTMLParser
+
 
 def _check_html(html: str) -> bool:
     try:
         parser = HTMLParser()
         parser.feed(html)
         return True
-    except Exception as e:
+    except Exception:
         return False
+
 
 class ReportRenderer(mistune.HTMLRenderer):
     def link(self, text: str, url: str, title: Optional[str] = None) -> str:
-        if text and text.startswith('^'):
+        if text and text.startswith("^"):
             return f'<span class="citation-ref"><a target="_blank" href="{url}">{text.removeprefix("^")}</a></span>'
         return super().link(text, url, title)
 
     def block_code(self, code: str, info: Optional[str] = None) -> str:
-        if info and info == 'custom_html':
+        if info and info == "custom_html":
             if _check_html(code):
                 return code
             else:
-                return ''
+                return ""
         return super().block_code(code, info)
 
-_html_template = '''\
+
+_html_template = """\
 <!DOCTYPE html>
 <html>
 <head>
@@ -880,7 +882,7 @@ _html_template = '''\
             },
 
             removeChapterNumerals(scope) {
-                const chapterNumeralRegex = /^[一二三四五六七八九十百千]+[、\.．]\s*/;
+                const chapterNumeralRegex = /^[一二三四五六七八九十百千]+[、\\.．]\\s*/;
                 scope.querySelectorAll('h2').forEach(h => {
                     h.textContent = h.textContent.replace(chapterNumeralRegex, '').trim();
                 });
@@ -889,7 +891,7 @@ _html_template = '''\
             transformMarkdownBold(scope) {
                 const textElementsSelector = 'p, li, td, th, blockquote';
                 const elements = scope.querySelectorAll(textElementsSelector);
-                const boldRegex = /\*\*([^*]+?)\*\*/g;
+                const boldRegex = /\\*\\*([^*]+?)\\*\\*/g;
 
                 elements.forEach(el => {
                     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -1036,19 +1038,23 @@ _html_template = '''\
 </script>
 </body>
 </html>
-'''
+"""
 
-def markdown2html(title:str, markdown:str) -> str:
+
+def markdown2html(title: str, markdown: str) -> str:
     """
     Convert markdown to html.
     """
-    gsm = ['url', 'table', 'strikethrough', 'task_lists']
-    convert = mistune.create_markdown(escape=False, renderer=ReportRenderer(), plugins=gsm)
+    gsm = ["url", "table", "strikethrough", "task_lists"]
+    convert = mistune.create_markdown(
+        escape=False, renderer=ReportRenderer(), plugins=gsm
+    )
     content = convert(markdown)
-    html = _html_template.replace('{title}', title).replace('{content}', content)
+    html = _html_template.replace("{title}", title).replace("{content}", content)
     return html
 
-_test_md = '''
+
+_test_md = """
 # 写字楼园区高盈利餐饮业态投资策略分析
 
 ## 一、市场概况分析
@@ -1252,9 +1258,9 @@ option = {
 [^3]: https://jiameng.baidu.com/content/detail?id=737970097894
 [^4]: https://baijiahao.baidu.com/s?id=1837363162619235727
 [^5]: https://m.renrendoc.com/paper/423690601.html
-'''
+"""
 
-if __name__ == '__main__':
-    html = markdown2html('Test', _test_md)
-    with open('test.html', 'wb') as f:
-        f.write(html.encode('utf-8'))
+if __name__ == "__main__":
+    html = markdown2html("Test", _test_md)
+    with open("test.html", "wb") as f:
+        f.write(html.encode("utf-8"))

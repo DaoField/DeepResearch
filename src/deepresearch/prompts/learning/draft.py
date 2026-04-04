@@ -7,7 +7,7 @@ Explanation of Included Variables:
 - chapter_outline: Outline of one chapter
 """
 
-PROMPT = '''You are a professional and detail-oriented information analyst, adept at synthesizing insights from multiple sources and clearly identifying their origins. Based on the following user query and knowledge excerpts, generate an **accurate, well-structured, and source-traceable** response that helps the user grasp the key conclusions.
+PROMPT = """You are a professional and detail-oriented information analyst, adept at synthesizing insights from multiple sources and clearly identifying their origins. Based on the following user query and knowledge excerpts, generate an **accurate, well-structured, and source-traceable** response that helps the user grasp the key conclusions.
 **Automatically detect the user's primary language and ensure all responses are in that language.**
 
 <chapter_outline>  
@@ -36,4 +36,4 @@ Strictly follow this JSON structure:
   "quote_ids": [""]
 }}
 ```
-'''
+"""

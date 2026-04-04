@@ -1,6 +1,8 @@
 # Copyright (c) 2025 iFLYTEK CO.,LTD.
 # SPDX-License-Identifier: Apache 2.0 License
-def colored_print(text, color='white', bg_color=None, bold=False, underline=False, end='\n'):
+def colored_print(
+    text, color="white", bg_color=None, bold=False, underline=False, end="\n"
+):
     """
     Function for printing colored text
     :param text: Content to be printed
@@ -12,26 +14,35 @@ def colored_print(text, color='white', bg_color=None, bold=False, underline=Fals
     """
     # Color mapping dictionary
     color_map = {
-        'black': '\033[30m', 'red': '\033[31m', 'green': '\033[32m',
-        'yellow': '\033[33m', 'blue': '\033[34m', 'purple': '\033[35m',
-        'cyan': '\033[36m', 'white': '\033[37m', 'orange': '\033[38;5;208m',
+        "black": "\033[30m",
+        "red": "\033[31m",
+        "green": "\033[32m",
+        "yellow": "\033[33m",
+        "blue": "\033[34m",
+        "purple": "\033[35m",
+        "cyan": "\033[36m",
+        "white": "\033[37m",
+        "orange": "\033[38;5;208m",
     }
     bg_color_map = {
-        'black': '\033[40m', 'red': '\033[41m', 'green': '\033[42m',
-        'yellow': '\033[43m'
+        "black": "\033[40m",
+        "red": "\033[41m",
+        "green": "\033[42m",
+        "yellow": "\033[43m",
     }
 
     # Assemble styles
-    style = color_map.get(color.lower(), color_map['white'])  # Default to white
+    style = color_map.get(color.lower(), color_map["white"])  # Default to white
     if bg_color:
-        style += bg_color_map.get(bg_color.lower(), '')
+        style += bg_color_map.get(bg_color.lower(), "")
     if bold:
-        style += '\033[1m'
+        style += "\033[1m"
     if underline:
-        style += '\033[4m'
+        style += "\033[4m"
 
     # Print and reset styles
     print(f"{style}{text}\033[0m", end=end)
+
 
 # Usage examples
 if __name__ == "__main__":

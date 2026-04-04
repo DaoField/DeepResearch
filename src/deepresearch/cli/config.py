@@ -49,28 +49,24 @@ class CLIConfig:
 
     def __post_init__(self) -> None:
         """验证配置值的有效性。"""
-        object.__setattr__(
-            self, "max_depth", max(1, min(self.max_depth, 10))
-        )
-        object.__setattr__(
-            self, "max_history", max(10, min(self.max_history, 1000))
-        )
-        object.__setattr__(
-            self, "timeout", max(30, min(self.timeout, 3600))
-        )
+        object.__setattr__(self, "max_depth", max(1, min(self.max_depth, 10)))
+        object.__setattr__(self, "max_history", max(10, min(self.max_history, 1000)))
+        object.__setattr__(self, "timeout", max(30, min(self.timeout, 3600)))
 
     @classmethod
-    def from_env(cls) -> "CLIConfig":
+    def from_env(cls) -> CLIConfig:
         """从环境变量加载配置。"""
         return cls(
             max_depth=int(os.getenv("DEEPRESEARCH_MAX_DEPTH", "3")),
-            save_as_html=os.getenv("DEEPRESEARCH_SAVE_AS_HTML", "true").lower() == "true",
+            save_as_html=os.getenv("DEEPRESEARCH_SAVE_AS_HTML", "true").lower()
+            == "true",
             save_path=os.getenv("DEEPRESEARCH_SAVE_PATH", "./example/report"),
             log_level=os.getenv("DEEPRESEARCH_LOG_LEVEL", "INFO"),  # type: ignore
             log_file=os.getenv("DEEPRESEARCH_LOG_FILE"),
             history_file=os.getenv("DEEPRESEARCH_HISTORY_FILE"),
             max_history=int(os.getenv("DEEPRESEARCH_MAX_HISTORY", "100")),
-            stream_output=os.getenv("DEEPRESEARCH_STREAM_OUTPUT", "true").lower() == "true",
+            stream_output=os.getenv("DEEPRESEARCH_STREAM_OUTPUT", "true").lower()
+            == "true",
             timeout=int(os.getenv("DEEPRESEARCH_TIMEOUT", "300")),
             theme=os.getenv("DEEPRESEARCH_THEME", "default"),  # type: ignore
             config_dir=os.getenv("DEEPRESEARCH_CONFIG_DIR"),
@@ -134,15 +130,14 @@ def get_cli_config(
     if kwargs:
         config = CLIConfig(
             **{
-                **{
-                    k: getattr(config, k)
-                    for k in CLIConfig.__dataclass_fields__
-                },
+                **{k: getattr(config, k) for k in CLIConfig.__dataclass_fields__},
                 **kwargs,
             }
         )
 
-    logger.debug(f"CLI配置加载完成: max_depth={config.max_depth}, "
-                f"save_as_html={config.save_as_html}, save_path={config.save_path}")
+    logger.debug(
+        f"CLI配置加载完成: max_depth={config.max_depth}, "
+        f"save_as_html={config.save_as_html}, save_path={config.save_path}"
+    )
 
     return config

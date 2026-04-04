@@ -2,14 +2,14 @@
 # SPDX-License-Identifier: Apache 2.0 License
 
 from deepresearch.agent.agent import build_agent
-from deepresearch.logging_config import configure_logging, get_logger
 from deepresearch.errors import (
-    DeepResearchError,
     ConfigError,
-    SearchError,
+    DeepResearchError,
     LLMError,
     ReportError,
+    SearchError,
 )
+from deepresearch.logging_config import configure_logging, get_logger
 
 try:
     from deepresearch._version import __version__

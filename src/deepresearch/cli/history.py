@@ -14,8 +14,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from deepresearch.logging_config import get_logger
 from deepresearch.cli.exceptions import FileOperationError
+from deepresearch.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -41,7 +41,7 @@ class HistoryEntry:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "HistoryEntry":
+    def from_dict(cls, data: dict[str, Any]) -> HistoryEntry:
         """从字典创建实例。"""
         return cls(
             timestamp=data.get("timestamp", ""),
@@ -90,12 +90,12 @@ class HistoryManager:
             return
 
         try:
-            with open(self.history_file, "r", encoding="utf-8") as f:
+            with open(self.history_file, encoding="utf-8") as f:
                 data = json.load(f)
                 if isinstance(data, list):
                     self._entries = [
                         HistoryEntry.from_dict(entry)
-                        for entry in data[-self.max_entries:]
+                        for entry in data[-self.max_entries :]
                     ]
                     object.__setattr__(self, "_loaded", True)
                     logger.debug(f"已加载 {len(self._entries)} 条历史记录")
@@ -142,7 +142,7 @@ class HistoryManager:
 
         # 限制历史记录数量
         if len(self._entries) > self.max_entries:
-            self._entries = self._entries[-self.max_entries:]
+            self._entries = self._entries[-self.max_entries :]
 
         # 异步保存
         try:
@@ -236,7 +236,9 @@ def get_default_history_path() -> Path:
     if os.name == "nt":  # Windows
         base_dir = Path(os.environ.get("APPDATA", Path.home()))
     else:  # Unix-like
-        base_dir = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
+        base_dir = Path(
+            os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share")
+        )
 
     history_dir = base_dir / "deepresearch"
     history_dir.mkdir(parents=True, exist_ok=True)

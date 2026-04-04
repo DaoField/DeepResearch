@@ -2,30 +2,30 @@
 # SPDX-License-Identifier: Apache 2.0 License
 import json
 from dataclasses import dataclass, field
+from typing import Any
 
 from langgraph.graph import MessagesState
-from typing import List, Optional, Any, Dict
 
 
 @dataclass
 class Reference:
     ref_id: int  # 对应Go的RefId
-    source: Optional[str] = None
+    source: str | None = None
 
 
 @dataclass
 class Chapter:
     id: int
-    level: Optional[int] = None
-    title: Optional[str] = None
-    thinking: Optional[str] = None
-    summary: Optional[str] = None
-    sub_chapter: List["Chapter"] = field(default_factory=list)
-    parent_chapter: Optional["Chapter"] = None
-    references: List[Reference] = field(default_factory=list)
-    learning_knowledge: List[Dict[str, Any]] = field(default_factory=list)
+    level: int | None = None
+    title: str | None = None
+    thinking: str | None = None
+    summary: str | None = None
+    sub_chapter: list[Chapter] = field(default_factory=list)
+    parent_chapter: Chapter | None = None
+    references: list[Reference] = field(default_factory=list)
+    learning_knowledge: list[dict[str, Any]] = field(default_factory=list)
 
-    def add_reference(self, reference: Reference | List[Reference]):
+    def add_reference(self, reference: Reference | list[Reference]):
         """添加引用到章节"""
         if isinstance(reference, list):
             self.references.extend(reference)
@@ -59,17 +59,17 @@ class Chapter:
 
         return "\n\n".join(markdown_parts)
 
-    def merge_knowledge(self) -> "Chapter":
+    def merge_knowledge(self) -> Chapter:
         """
         合并具有相同引用的知识点，避免重复内容
-        
+
         Returns:
             返回自身以支持链式调用
         """
         if not self.learning_knowledge:
             return self
-            
-        groups: Dict[tuple, List[str]] = {}
+
+        groups: dict[tuple, list[str]] = {}
 
         for knowledge in self.learning_knowledge:
             real_ref = knowledge.get("real_reference", [])
@@ -90,7 +90,7 @@ class Chapter:
                 merged_insight = "\n\n".join(valid_insights)
                 merged_ref = list(ref_tuple)
                 merged.append({"insight": merged_insight, "real_reference": merged_ref})
-        
+
         self.learning_knowledge = merged
         return self
 
@@ -99,12 +99,15 @@ class Chapter:
         if not self.learning_knowledge:
             return "[]"
         try:
-            return json.dumps([
-                {'id': i, 'content': knowledge.get("insight", "")} 
-                for i, knowledge in enumerate(self.learning_knowledge)
-                if knowledge.get("insight", "").strip()
-            ], ensure_ascii=False)
-        except (TypeError, ValueError) as e:
+            return json.dumps(
+                [
+                    {"id": i, "content": knowledge.get("insight", "")}
+                    for i, knowledge in enumerate(self.learning_knowledge)
+                    if knowledge.get("insight", "").strip()
+                ],
+                ensure_ascii=False,
+            )
+        except TypeError, ValueError:
             return "[]"
 
 
@@ -112,7 +115,7 @@ class ReportState(MessagesState):
     # Report outline
     outline: Chapter
     # User request
-    messages: List
+    messages: list
     # Report topic, rewritten by user request
     topic: str
     # domain

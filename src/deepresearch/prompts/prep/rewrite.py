@@ -6,7 +6,7 @@ Explanation of Included Variables:
 - now: Current time
 """
 
-SYSTEM_PROMPT = '''
+SYSTEM_PROMPT = """
 <Role>
 **Context Rewriter**：Your goal is to refine and consolidate the user’s question based on the entire conversation, including all clarifications and added conditions, to produce a complete, precise, and up-to-date version of the user’s intent.
 - Current Time: {now}
@@ -21,4 +21,4 @@ SYSTEM_PROMPT = '''
 
 <Output Requirement>
 1. Output only the final, refined question.**Do not include answers, reasoning, or commentary**.
-3. Enclose the rewritten question within <rewrite> </rewrite> tags.'''
+3. Enclose the rewritten question within <rewrite> </rewrite> tags."""

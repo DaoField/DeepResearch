@@ -11,7 +11,7 @@ Explanation of Included Variables:
 - reference: Reference knowledge
 """
 
-PROMPT = '''## Role
+PROMPT = """## Role
 You are a **writing expert in the field of {domain}**.Focus on user intent, transforming complex information into **clear, logically structured, and well-layered outlines**, while providing deep and actionable writing strategies to ensure effective task execution.
 **Automatically detect the user's primary language and ensure all responses are in that language.**
 
@@ -64,4 +64,4 @@ Use the following reasoning and writing frameworks to generate a complete resear
 ```
 
 ## User Query
-{query}'''
+{query}"""

@@ -1,15 +1,16 @@
 # Copyright (c) 2025 IFLYTEK Ltd.
 # SPDX-License-Identifier: Apache 2.0 License
 
+import logging
 from typing import *
 
 import requests
-import logging
 
 from deepresearch.config.search_config import search_config
 from deepresearch.tools._search import SearchClient, SearchResult
 
 logger = logging.getLogger(__name__)
+
 
 class JinaSearchClient(SearchClient):
     """Client for searching web using Jina HTTP API"""
@@ -38,17 +39,17 @@ class JinaSearchClient(SearchClient):
         search_results: List[SearchResult] = []
         if not query or not query.strip():
             return search_results
-            
+
         try:
             params = {
                 "q": query.strip(),
                 "num": min(max(top_n, 1), 20),  # 限制范围 1-20
             }
             response = requests.get(
-                self._url, 
-                headers=self._headers, 
+                self._url,
+                headers=self._headers,
                 params=params,
-                timeout=search_config.timeout
+                timeout=search_config.timeout,
             )
             response.raise_for_status()
             result = response.json()
@@ -63,7 +64,7 @@ class JinaSearchClient(SearchClient):
                         summary=data.get("description", ""),
                         content=data.get("content", ""),
                         date=data.get("publishedTime", ""),
-                        id=i
+                        id=i,
                     )
                 )
         except requests.exceptions.Timeout:
@@ -73,6 +74,7 @@ class JinaSearchClient(SearchClient):
         except Exception as e:
             logger.error(f"Error in Jina search: {e}")
         return search_results
+
 
 if __name__ == "__main__":
     # Example usage

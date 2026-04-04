@@ -9,9 +9,10 @@ CLI 用户界面模块
 
 import shutil
 import sys
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Iterator, Literal
+from typing import Literal
 
 from deepresearch.logging_config import get_logger
 
@@ -195,7 +196,7 @@ class TerminalUI:
             self.print(text.center(width), color="bright_cyan", bold=True)
             self.print("=" * width, color="cyan")
         else:
-            self.print(f"\n{'='*40}", color="blue")
+            self.print(f"\n{'=' * 40}", color="blue")
             self.print(text, color="bright_blue", bold=True)
             self.print("=" * 40, color="blue")
 
@@ -360,7 +361,9 @@ class ProgressTracker:
         self.ui.print_progress("完成", self.total_steps, self.total_steps)
 
 
-def create_ui(theme: Literal["default", "minimal", "colorful"] = "default") -> TerminalUI:
+def create_ui(
+    theme: Literal["default", "minimal", "colorful"] = "default",
+) -> TerminalUI:
     """创建终端UI实例。
 
     工厂函数，用于创建配置好的TerminalUI实例。

@@ -7,7 +7,7 @@ Explanation of Included Variables:
 - chapter_outline: Outline of one chapter
 """
 
-PROMPT = '''You are an expert in query evaluation. Using the following definitions and rules, assess whether each category applies to the user’s query (true or false).
+PROMPT = """You are an expert in query evaluation. Using the following definitions and rules, assess whether each category applies to the user’s query (true or false).
 **Automatically detect the user's primary language and ensure all responses are in that language.**
 
 Current time: {now}
@@ -61,4 +61,4 @@ Following the above definitions, rules, and examples, strictly output the result
 
 ## User query:
 {chapter_outline}
-'''
+"""

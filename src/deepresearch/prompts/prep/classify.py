@@ -6,7 +6,7 @@ Explanation of Included Variables:
 - query: user input
 """
 
-PROMPT = '''## Role
+PROMPT = """## Role
 You are an intent classification expert. Your task is to precisely identify the **core purpose** and **main analytical subject** of a user’s query and assign it to **one** of the categories below.
 **Automatically detect the user's primary language and ensure all responses are in that language.**
 
@@ -44,4 +44,4 @@ Example: <domain>Comprehensive Analysis</domain>
 3. If uncertain, classify as **Comprehensive Analysis**.
 
 ## User Query
-{query}'''
+{query}"""

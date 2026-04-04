@@ -1,13 +1,14 @@
 # Copyright (c) 2025 IFLYTEK Ltd.
 # SPDX-License-Identifier: Apache 2.0 License
 
-from typing import Generator, Union, Dict, List
+import logging
+from collections.abc import Generator
 from functools import lru_cache
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_deepseek import ChatDeepSeek
 
 from deepresearch.config.llms_config import LLMType, get_llm_configs
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -15,9 +16,9 @@ logger = logging.getLogger(__name__)
 _MAX_LLM_CACHE_SIZE = 24
 
 
-def _make_llm_instance(llm_type: LLMType,
-                       streaming: bool = False,
-                       max_tokens: int = 8192) -> ChatDeepSeek:
+def _make_llm_instance(
+    llm_type: LLMType, streaming: bool = False, max_tokens: int = 8192
+) -> ChatDeepSeek:
     """
     Factory function to create a new LLM instance. Wrapped with lru_cache for automatic eviction.
     Cache key is the tuple (llm_type, streaming, max_tokens).
@@ -39,9 +40,9 @@ def _make_llm_instance(llm_type: LLMType,
 _cached_make_llm_instance = lru_cache(maxsize=_MAX_LLM_CACHE_SIZE)(_make_llm_instance)
 
 
-def _get_llm_instance(llm_type: LLMType,
-                      streaming: bool = False,
-                      max_tokens: int = 8192) -> ChatDeepSeek:
+def _get_llm_instance(
+    llm_type: LLMType, streaming: bool = False, max_tokens: int = 8192
+) -> ChatDeepSeek:
     """
     Retrieves a cached ChatOpenAI instance or creates a new one with specified parameters.
     Uses LRU eviction policy to prevent unbounded memory growth (max 24 instances).
@@ -64,12 +65,17 @@ def _get_llm_instance(llm_type: LLMType,
 _MAX_RESPONSE_CACHE_SIZE = 100
 
 
-def _message_hash(messages: List[Union[HumanMessage, AIMessage, SystemMessage]]) -> str:
+def _message_hash(messages: list[HumanMessage | AIMessage | SystemMessage]) -> str:
     """Generate a hash for a list of messages to use as cache key"""
     return "".join([f"{msg.type}:{msg.content[:200]}" for msg in messages])
 
 
-def _cached_llm_response(llm_type: LLMType, message_hash: str, stream: bool, messages: List[Union[HumanMessage, AIMessage, SystemMessage]]) -> Union[Generator[str, None, None], str]:
+def _cached_llm_response(
+    llm_type: LLMType,
+    message_hash: str,
+    stream: bool,
+    messages: list[HumanMessage | AIMessage | SystemMessage],
+) -> Generator[str] | str:
     """Cached LLM response generation"""
     llm = _get_llm_instance(llm_type, stream)
     if stream:
@@ -79,14 +85,14 @@ def _cached_llm_response(llm_type: LLMType, message_hash: str, stream: bool, mes
 
 
 # Cache for LLM responses
-_response_cache: Dict[tuple, str] = {}
+_response_cache: dict[tuple, str] = {}
 
 
 def llm(
-        llm_type: LLMType,
-        messages: List[Union[HumanMessage, AIMessage, SystemMessage]],
-        stream: bool = False
-) -> Union[Generator[str, None, None], str]:
+    llm_type: LLMType,
+    messages: list[HumanMessage | AIMessage | SystemMessage],
+    stream: bool = False,
+) -> Generator[str] | str:
     """
     Generates responses from LLM with support for streaming and non-streaming modes.
 
@@ -104,20 +110,20 @@ def llm(
         # Generate cache key using message hash and llm type
         message_hash = _message_hash(messages)
         cache_key = (llm_type, message_hash)
-        
+
         # Check if response is in cache
         if cache_key in _response_cache:
             return _response_cache[cache_key]
-        
+
         # Generate response and cache it
         response = _cached_llm_response(llm_type, message_hash, stream, messages)
-        
+
         # Manage cache size
         if len(_response_cache) >= _MAX_RESPONSE_CACHE_SIZE:
             # Remove oldest item (FIFO)
             oldest_key = next(iter(_response_cache))
             del _response_cache[oldest_key]
-        
+
         _response_cache[cache_key] = response
         return response
     else:
@@ -128,7 +134,9 @@ def llm(
             return _non_stream_llm_response(llm, messages)
 
 
-def _stream_llm_response(llm: ChatDeepSeek, messages: List[Union[HumanMessage, AIMessage, SystemMessage]]) -> Generator[tuple[str, str], None, None]:
+def _stream_llm_response(
+    llm: ChatDeepSeek, messages: list[HumanMessage | AIMessage | SystemMessage]
+) -> Generator[tuple[str, str]]:
     """
     Handles streaming responses from LLM.
 
@@ -142,7 +150,7 @@ def _stream_llm_response(llm: ChatDeepSeek, messages: List[Union[HumanMessage, A
     if not messages:
         logger.warning("Empty messages list provided to LLM stream")
         return
-        
+
     # Stream responses and process chunks
     try:
         for chunk in llm.stream(messages):
@@ -150,16 +158,18 @@ def _stream_llm_response(llm: ChatDeepSeek, messages: List[Union[HumanMessage, A
                 continue
             reasoning_content = ""
             content = ""
-            if hasattr(chunk, 'additional_kwargs'):
+            if hasattr(chunk, "additional_kwargs"):
                 reasoning_content = chunk.additional_kwargs.get("reasoning_content", "")
-            if hasattr(chunk, 'content'):
+            if hasattr(chunk, "content"):
                 content = chunk.content
             yield reasoning_content, content
     except Exception as e:
         logger.error(f"LLM streaming error: {e}")
 
 
-def _non_stream_llm_response(llm: ChatDeepSeek, messages: List[Union[HumanMessage, AIMessage, SystemMessage]]) -> str:
+def _non_stream_llm_response(
+    llm: ChatDeepSeek, messages: list[HumanMessage | AIMessage | SystemMessage]
+) -> str:
     """
     Handles non-streaming responses from LLM.
 
@@ -173,20 +183,24 @@ def _non_stream_llm_response(llm: ChatDeepSeek, messages: List[Union[HumanMessag
     if not messages:
         logger.warning("Empty messages list provided to LLM")
         return ""
-        
+
     try:
         response = llm.invoke(messages)
     except Exception as e:
         logger.error(f"LLM invoke error: {e}")
         return ""
-        
+
     if not response:
         logger.warning("Empty response from LLM")
         return ""
-        
-    reasoning_content = response.additional_kwargs.get("reasoning_content", "") if hasattr(response, 'additional_kwargs') else ""
-    content = response.content if hasattr(response, 'content') else str(response)
-    
+
+    reasoning_content = (
+        response.additional_kwargs.get("reasoning_content", "")
+        if hasattr(response, "additional_kwargs")
+        else ""
+    )
+    content = response.content if hasattr(response, "content") else str(response)
+
     if reasoning_content:
         return f"<thinking>{reasoning_content}</thinking>\n{content}"
     return content
@@ -197,27 +211,34 @@ if __name__ == "__main__":
         # Example conversation message list
         conversation = [
             SystemMessage(
-                content="You are a physics expert skilled at explaining complex concepts in simple, understandable language."),
-            HumanMessage(content="Please explain the concept of quantum superposition."),
+                content="You are a physics expert skilled at explaining complex concepts in simple, understandable language."
+            ),
+            HumanMessage(
+                content="Please explain the concept of quantum superposition."
+            ),
             AIMessage(
-                content="Quantum superposition is a fundamental principle in quantum mechanics, stating that microscopic particles can exist in multiple states simultaneously until measured, at which point they collapse to a definite state."),
+                content="Quantum superposition is a fundamental principle in quantum mechanics, stating that microscopic particles can exist in multiple states simultaneously until measured, at which point they collapse to a definite state."
+            ),
         ]
 
         # Demonstrate non-streaming response (continuing the conversation)
         print("=== Non-streaming Response ===")
         non_stream_response = llm(
             "basic",
-            [*conversation, HumanMessage(content="Can you explain this using an everyday analogy?")],
-            stream=False
+            [
+                *conversation,
+                HumanMessage(content="Can you explain this using an everyday analogy?"),
+            ],
+            stream=False,
         )
         print(non_stream_response)
 
         # Demonstrate streaming response
         print("\n=== Streaming Response ===")
         for reasoning_content, content in llm(
-                "basic",
-                [*conversation, HumanMessage(content="What is quantum entanglement then?")],
-                stream=True
+            "basic",
+            [*conversation, HumanMessage(content="What is quantum entanglement then?")],
+            stream=True,
         ):
             print(reasoning_content, end="", flush=True)
             print(content, end="", flush=True)

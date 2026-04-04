@@ -1,17 +1,18 @@
 # Copyright (c) 2025 IFLYTEK Ltd.
 # SPDX-License-Identifier: Apache 2.0 License
 
-from typing import Dict, Tuple, List, Optional
 from enum import Enum
+
 
 class AnalysisTag(str, Enum):
     """Enumeration class for analysis type tags, uniformly managing all valid tags to avoid magic strings"""
+
     INDUSTRY = "Industry Research"
     COMPANY = "Company Research"
     COMPREHENSIVE = "Comprehensive Analysis"
 
     @classmethod
-    def get_all_tags(cls) -> List[str]:
+    def get_all_tags(cls) -> list[str]:
         """Get a list of strings for all tags, used for quick verification/traversal"""
         return [tag.value for tag in cls]
 
@@ -22,9 +23,9 @@ class AnalysisTag(str, Enum):
 
 
 # Analysis data structure: (analysis logic steps: str, detailed analysis content: str)
-AnalysisData = Tuple[str, str]
+AnalysisData = tuple[str, str]
 # Analysis dictionary: Key is the value of AnalysisTag enumeration, value is AnalysisData
-AnalysisDict = Dict[str, AnalysisData]
+AnalysisDict = dict[str, AnalysisData]
 
 
 def init_analysis_data() -> AnalysisDict:
@@ -39,7 +40,7 @@ Analyze the latest available data on **market size, growth rate, and user base**
 3. Leading Players Analysis  
 Identify **top incumbents and emerging challengers** in the industry. Compare their **market share, strategic positioning, business models, marketing approaches, and user perception**, with emphasis on **core competitive advantages** and differentiation factors.
 4. Industry Outlook  
-Integrate insights from policy, technology, consumer, and capital perspectives, combined with expert opinions and industry reports, to forecast the next **3–5 years** of development. Highlight **market growth potential, technological evolution, and emerging business models**, providing forward-looking guidance for strategic planning."""
+Integrate insights from policy, technology, consumer, and capital perspectives, combined with expert opinions and industry reports, to forecast the next **3–5 years** of development. Highlight **market growth potential, technological evolution, and emerging business models**, providing forward-looking guidance for strategic planning.""",
         ),
         AnalysisTag.COMPANY.value: (
             "Research the company background → Analyze industry landscape and emerging trends → Consolidate financial performance and key indicators → Identify core business segments and growth drivers → Integrate market dynamics to highlight potential risks",
@@ -55,7 +56,7 @@ Introduce the company’s **basic information**, including name, ownership struc
 4. Business Segments and Growth Potential  
 Assess the **market performance and competitive advantages** of core business lines. Identify **current and emerging profit drivers**, and evaluate **future growth prospects** in line with corporate strategy.
 5. Investment Value and Risk Assessment  
-Combine industry outlook and market dynamics to derive a **reasonable valuation and investment view**. Highlight potential risks related to **policy changes, intensifying competition, or business transformation**."""
+Combine industry outlook and market dynamics to derive a **reasonable valuation and investment view**. Highlight potential risks related to **policy changes, intensifying competition, or business transformation**.""",
         ),
         AnalysisTag.COMPREHENSIVE.value: (
             "Identify user intent → Define problem type and analytical dimensions → Fill knowledge gaps and set priorities → Build an overall analytical framework and actionable plan → Design content aligned with real needs",
@@ -65,10 +66,14 @@ Combine industry outlook and market dynamics to derive a **reasonable valuation 
 | **Evaluation & Forecasting** | 1. Framework Establishment: Define the objectives, scope, and evaluation criteria to form a baseline for analysis.<br>2. Comprehensive Assessment: Develop a multidimensional indicator system and perform comparative analysis to reach objective conclusions.<br>3. Scenario Modeling & Forecasting: Construct alternative development paths based on key variables and assess uncertainties.<br>4. Decision Recommendations: Translate predictive results into prioritized and actionable decision plans. | If only comparative findings are required, skip the framework setup. If forecasting is the main goal, begin with scenario modeling. |
 | **Planning & Design** | 1. Goal Setting & Current Review: Clarify core goals and value orientation while taking stock of available resources.<br>2. Gap Identification & Needs Analysis: Compare current conditions against target requirements to pinpoint improvement priorities.<br>3. Task Breakdown & Implementation Planning: Translate objectives into executable tasks and outline the roadmap for delivery.<br>4. Risk Management & Safeguards: Identify major risks and design mitigation measures and contingency plans.<br>5. Monitoring & Iterative Optimization: Establish monitoring mechanisms and ensure continuous refinement. | If objectives are already clear, start with gap analysis. For execution-oriented work, begin with task planning. |
 | **Information Mapping** | 1. Scope Definition & Criteria Setting: Specify collection boundaries, screening criteria, and presentation expectations.<br>2. Classification & Highlighting: Structure information by logical dimensions, emphasizing key facts and insights.<br>3. Supplementary Notes & Sources: Provide contextual explanations and cite reliable sources. | For basic compilations, classification may be omitted. For practical use, emphasize structured and navigable presentation. |
-| **Comprehensive (Fallback) Analysis** | 1. Background & Core Proposition: Define the main issue and the intended outcome.<br>2. Evidence & Validation: Substantiate claims with data, theory, and case evidence.<br>3. Multi-Angle Argumentation: Examine the topic through multiple perspectives to build a cohesive line of reasoning.<br>4. Implementation Path & Risk Management: Present feasible action steps and address potential risks with countermeasures.<br>5. Conclusion & Actionable Insights: Synthesize findings into clear, practical recommendations. | The entry point can vary: start from the proposition for conclusion-driven work, from implementation for execution-focused work, or from argumentation for analysis-heavy studies. |""")}
+| **Comprehensive (Fallback) Analysis** | 1. Background & Core Proposition: Define the main issue and the intended outcome.<br>2. Evidence & Validation: Substantiate claims with data, theory, and case evidence.<br>3. Multi-Angle Argumentation: Examine the topic through multiple perspectives to build a cohesive line of reasoning.<br>4. Implementation Path & Risk Management: Present feasible action steps and address potential risks with countermeasures.<br>5. Conclusion & Actionable Insights: Synthesize findings into clear, practical recommendations. | The entry point can vary: start from the proposition for conclusion-driven work, from implementation for execution-focused work, or from argumentation for analysis-heavy studies. |""",
+        ),
+    }
 
 
-def get_analysis_data(tag: str, analysis_dict: Optional[AnalysisDict] = None) -> AnalysisData:
+def get_analysis_data(
+    tag: str, analysis_dict: AnalysisDict | None = None
+) -> AnalysisData:
     """
     Retrieve analysis data by tag.
 
@@ -87,7 +92,9 @@ def get_analysis_data(tag: str, analysis_dict: Optional[AnalysisDict] = None) ->
 
     # Validate tag
     if not AnalysisTag.is_valid_tag(tag):
-        raise ValueError(f"Invalid analysis tag: {tag}. Valid tags are: {', '.join(AnalysisTag.get_all_tags())}")
+        raise ValueError(
+            f"Invalid analysis tag: {tag}. Valid tags are: {', '.join(AnalysisTag.get_all_tags())}"
+        )
 
     # Check if tag exists in the analysis data
     if tag not in analysis_data:

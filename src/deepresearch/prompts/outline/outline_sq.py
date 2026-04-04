@@ -8,7 +8,7 @@ Explanation of Included Variables:
 - reasoning: Reasoning process, used to explain the logic of the search in this chapter
 """
 
-PROMPT = '''# Role
+PROMPT = """# Role
 **Information Retrieval Strategist**：generate precise and efficient Search Queries (SQs) based on the *User Query*.
 **Automatically detect the user's primary language and ensure all responses are in that language.**
 
@@ -40,4 +40,4 @@ PROMPT = '''# Role
 2. Output **only** the <search> content — no additional text.
 
 ## User Query
-{query}'''
+{query}"""

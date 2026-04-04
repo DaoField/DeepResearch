@@ -13,7 +13,6 @@ import os
 import signal
 import sys
 from pathlib import Path
-from typing import List, Union
 
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.types import Command
@@ -27,10 +26,10 @@ from deepresearch.cli.exceptions import (
     UserInterruptError,
     ValidationError,
 )
-from deepresearch.config import config_manager
-from deepresearch.config.llms_config import reload_llm_configs
 from deepresearch.cli.history import HistoryManager, get_default_history_path
 from deepresearch.cli.ui import TerminalUI, create_ui
+from deepresearch.config import config_manager
+from deepresearch.config.llms_config import reload_llm_configs
 from deepresearch.logging_config import configure_logging, get_logger
 
 logger = get_logger(__name__)
@@ -81,8 +80,8 @@ signal.signal(signal.SIGTERM, _signal_handler)
 
 
 def validate_messages(
-    messages: List[Union[HumanMessage, AIMessage]],
-) -> List[Union[HumanMessage, AIMessage]]:
+    messages: list[HumanMessage | AIMessage],
+) -> list[HumanMessage | AIMessage]:
     """验证消息列表的有效性。
 
     Args:
@@ -105,10 +104,10 @@ def validate_messages(
 
 
 async def call_agent(
-    messages: List[Union[HumanMessage, AIMessage]],
+    messages: list[HumanMessage | AIMessage],
     config: CLIConfig | None = None,
     ui: TerminalUI | None = None,
-) -> List[Union[HumanMessage, AIMessage]]:
+) -> list[HumanMessage | AIMessage]:
     """调用Agent处理消息。
 
     Args:
@@ -223,7 +222,7 @@ async def interactive_agent(config: CLIConfig | None = None) -> int:
     ui.print_info("输入 'help' 查看帮助，'quit' 退出程序，'clear' 清空对话")
     ui.print()
 
-    messages: List[Union[HumanMessage, AIMessage]] = []
+    messages: list[HumanMessage | AIMessage] = []
 
     while True:
         try:
@@ -410,13 +409,15 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "-q", "--query",
+        "-q",
+        "--query",
         type=str,
         help="单次查询模式，直接输入问题并获取答案",
     )
 
     parser.add_argument(
-        "-d", "--depth",
+        "-d",
+        "--depth",
         type=int,
         default=None,
         metavar="N",
@@ -430,7 +431,8 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         type=str,
         default=None,
         metavar="PATH",
@@ -462,7 +464,8 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "-c", "--config-dir",
+        "-c",
+        "--config-dir",
         type=str,
         default=None,
         metavar="PATH",
@@ -470,7 +473,8 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "-v", "--version",
+        "-v",
+        "--version",
         action="version",
         version="%(prog)s 1.1.1",
     )
@@ -478,7 +482,7 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(args: List[str] | None = None) -> int:
+def main(args: list[str] | None = None) -> int:
     """CLI入口函数。
 
     Args:

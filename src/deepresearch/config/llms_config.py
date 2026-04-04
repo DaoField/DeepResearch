@@ -2,23 +2,24 @@
 # SPDX-License-Identifier: Apache 2.0 License
 
 from dataclasses import dataclass
-from typing import Dict, Type, TypeVar, Literal
-from .base import load_toml_config, redact_config, clear_config_cache
+from typing import Literal, TypeVar
 
+from .base import clear_config_cache, load_toml_config, redact_config
 
-T = TypeVar('T', bound='BaseLLMConfig')
+T = TypeVar("T", bound="BaseLLMConfig")
 
 
 @dataclass(kw_only=True)
 class BaseLLMConfig:
     """Base LLM configuration class containing common configuration items for all LLMs"""
+
     base_url: str
     api_base: str
     model: str
     api_key: str
 
     @classmethod
-    def from_dict(cls: Type[T], config_dict: Dict[str, str]) -> T:
+    def from_dict(cls: type[T], config_dict: dict[str, str]) -> T:
         """
         Create an instance from a dictionary with type safety validation
 
@@ -33,16 +34,16 @@ class BaseLLMConfig:
         """
         try:
             return cls(
-                base_url=config_dict.get('base_url', ''),
-                api_base=config_dict.get('api_base', ''),
-                model=config_dict['model'],
-                api_key=config_dict['api_key']
+                base_url=config_dict.get("base_url", ""),
+                api_base=config_dict.get("api_base", ""),
+                model=config_dict["model"],
+                api_key=config_dict["api_key"],
             )
         except KeyError as e:
             raise ValueError(f"Configuration missing required field: {e}") from e
 
 
-def load_llm_configs() -> Dict[str, BaseLLMConfig]:
+def load_llm_configs() -> dict[str, BaseLLMConfig]:
     """
     Load and parse LLM configuration file, return dictionary of all LLM config instances
 
@@ -73,10 +74,10 @@ def reload_llm_configs() -> None:
     _llm_configs_cache = None
 
 
-_llm_configs_cache: Dict[str, BaseLLMConfig] | None = None
+_llm_configs_cache: dict[str, BaseLLMConfig] | None = None
 
 
-def get_llm_configs() -> Dict[str, BaseLLMConfig]:
+def get_llm_configs() -> dict[str, BaseLLMConfig]:
     """获取 LLM 配置（懒加载）。"""
     global _llm_configs_cache
     if _llm_configs_cache is None:
@@ -84,28 +85,30 @@ def get_llm_configs() -> Dict[str, BaseLLMConfig]:
     return _llm_configs_cache
 
 
-LLMType = Literal["basic", "clarify", "planner", "query_generation", "evaluate", "report"]
+LLMType = Literal[
+    "basic", "clarify", "planner", "query_generation", "evaluate", "report"
+]
 
 
 def get_basic_llm() -> BaseLLMConfig:
-    return get_llm_configs()['basic']
+    return get_llm_configs()["basic"]
 
 
 def get_clarify_llm() -> BaseLLMConfig:
-    return get_llm_configs()['clarify']
+    return get_llm_configs()["clarify"]
 
 
 def get_planner_llm() -> BaseLLMConfig:
-    return get_llm_configs()['planner']
+    return get_llm_configs()["planner"]
 
 
 def get_query_generation_llm() -> BaseLLMConfig:
-    return get_llm_configs()['query_generation']
+    return get_llm_configs()["query_generation"]
 
 
 def get_evaluate_llm() -> BaseLLMConfig:
-    return get_llm_configs()['evaluate']
+    return get_llm_configs()["evaluate"]
 
 
 def get_report_llm() -> BaseLLMConfig:
-    return get_llm_configs()['report']
+    return get_llm_configs()["report"]

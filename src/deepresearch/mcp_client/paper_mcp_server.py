@@ -8,6 +8,7 @@ four Tools
   1. arxiv_search / arxiv_read
   2. pubmed_search / pubmed_read
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -15,19 +16,18 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, cast
 
 import requests
 from lxml import etree
-from mcp.server import Server
+from mcp.server import InitializationOptions, Server
 from mcp.server.stdio import stdio_server
-from mcp.types import TextContent, ServerCapabilities
-from mcp.server import InitializationOptions
-from typing import cast
+from mcp.types import ServerCapabilities, TextContent
 
 # Import local modules
-from .arxiv import Client as ArxivClient, Query, SortBy, SortOrder
-from .pubmed import PubMedService, PubMedSearchResult, PubMedFetchResult
+from .arxiv import Client as ArxivClient
+from .arxiv import Query, SortBy, SortOrder
+from .pubmed import PubMedService
 
 STORAGE = Path(os.getenv("PAPER_STORAGE", "./paper_cache"))
 STORAGE.mkdir(exist_ok=True)
@@ -37,7 +37,7 @@ pubmed_service = PubMedService()
 
 
 async def arxiv_search_async(
-        query: str, max_results: int = 5, date_from: str = "", date_to: str = ""
+    query: str, max_results: int = 5, date_from: str = "", date_to: str = ""
 ) -> TextContent:
     try:
         q = Query(
@@ -47,9 +47,9 @@ async def arxiv_search_async(
             sort_by=SortBy.SUBMITTED_DATE,
             sort_order=SortOrder.DESCENDING,
         )
-        papers: List[Dict[str, Any]] = []
+        papers: list[dict[str, Any]] = []
         for page in arxiv_client.search(q):
-            if hasattr(page, 'error') and page.error:
+            if hasattr(page, "error") and page.error:
                 return TextContent(type="text", text=f"search error: {page.error}")
             if not page.feed or not page.feed.entry:
                 break
@@ -86,7 +86,10 @@ async def arxiv_search_async(
     except Exception as e:
         return TextContent(type="text", text=f"arxiv search error: {e}")
 
-def arxiv_search(query: str, max_results: int = 5, date_from: str = "", date_to: str = "") -> str:
+
+def arxiv_search(
+    query: str, max_results: int = 5, date_from: str = "", date_to: str = ""
+) -> str:
     """
     Synchronous wrapper for arxiv_search_async
     Returns: JSON string with search results
@@ -104,7 +107,12 @@ async def arxiv_read_async(paper_id: str) -> TextContent:
         if not meta_path.exists():
             q = Query(article_ids=[paper_id], max_results_per_page=1)
             pages = list(arxiv_client.search(q))
-            if not pages or hasattr(pages[0], 'error') and pages[0].error or not pages[0].feed.entry:
+            if (
+                not pages
+                or hasattr(pages[0], "error")
+                and pages[0].error
+                or not pages[0].feed.entry
+            ):
                 return TextContent(type="text", text="can not find paper")
             ent = pages[0].feed.entry[0]
             pub_day = _parse_day(ent.published or ent.updated or "")
@@ -134,19 +142,23 @@ async def arxiv_read_async(paper_id: str) -> TextContent:
                 import pymupdf4llm
             except ImportError:
                 return TextContent(
-                    type="text", text="please install pymupdf4llm first: pip install pymupdf4llm"
+                    type="text",
+                    text="please install pymupdf4llm first: pip install pymupdf4llm",
                 )
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, _pdf2md, pdf_path, md_path)
 
         md_text = md_path.read_text(encoding="utf8")
-        meta = {k: p[k] for k in ("title", "id", "authors", "published", "url", "abstract")}
+        meta = {
+            k: p[k] for k in ("title", "id", "authors", "published", "url", "abstract")
+        }
         return TextContent(
             type="text",
             text=json.dumps({"meta": meta, "markdown": md_text}, ensure_ascii=False),
         )
     except Exception as e:
         return TextContent(type="text", text=f"arxiv read error: {e}")
+
 
 def arxiv_read(paper_id: str) -> str:
     """
@@ -158,10 +170,9 @@ def arxiv_read(paper_id: str) -> str:
 
 
 async def pubmed_search_async(
-        query: str, max_results: int = 5, date_from: str = "", date_to: str = ""
+    query: str, max_results: int = 5, date_from: str = "", date_to: str = ""
 ) -> TextContent:
     try:
-
         url = pubmed_service.generate_pubmed_search_url(
             query=query,
             start_date=date_from or "1900/01/01",
@@ -223,7 +234,10 @@ async def pubmed_search_async(
     except Exception as e:
         return TextContent(type="text", text=f"pubmed search error: {e}")
 
-def pubmed_search(query: str, max_results: int = 5, date_from: str = "", date_to: str = "") -> str:
+
+def pubmed_search(
+    query: str, max_results: int = 5, date_from: str = "", date_to: str = ""
+) -> str:
     """
     Synchronous wrapper for pubmed_search_async
     Returns: JSON string with search results
@@ -239,7 +253,6 @@ async def pubmed_read_async(paper_id: str) -> TextContent:
         md_path = STORAGE / f"pubmed_{paper_id}.md"
 
         if not meta_path.exists():
-
             url = (
                 "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?"
                 f"db=pubmed&id={paper_id}&retmode=xml"
@@ -278,12 +291,20 @@ async def pubmed_read_async(paper_id: str) -> TextContent:
             try:
                 loop = asyncio.get_event_loop()
                 success = await loop.run_in_executor(
-                    None, pubmed_service.download_pubmed_paper, doi, f"pubmed_{paper_id}", str(STORAGE)
+                    None,
+                    pubmed_service.download_pubmed_paper,
+                    doi,
+                    f"pubmed_{paper_id}",
+                    str(STORAGE),
                 )
                 if not success:
-                    return TextContent(type="text", text="download PDF error: download failed")
+                    return TextContent(
+                        type="text", text="download PDF error: download failed"
+                    )
             except Exception as e:
-                return TextContent(type="text", text=f"download PDF exception: {str(e)}")
+                return TextContent(
+                    type="text", text=f"download PDF exception: {str(e)}"
+                )
 
         # PDF to Markdown
         if not md_path.exists():
@@ -291,19 +312,23 @@ async def pubmed_read_async(paper_id: str) -> TextContent:
                 import pymupdf4llm
             except ImportError:
                 return TextContent(
-                    type="text", text="please install pymupdf4llm first: pip install pymupdf4llm"
+                    type="text",
+                    text="please install pymupdf4llm first: pip install pymupdf4llm",
                 )
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, _pdf2md, pdf_path, md_path)
 
         md_text = md_path.read_text(encoding="utf8")
-        meta = {k: p[k] for k in ("title", "id", "authors", "published", "url", "abstract")}
+        meta = {
+            k: p[k] for k in ("title", "id", "authors", "published", "url", "abstract")
+        }
         return TextContent(
             type="text",
             text=json.dumps({"meta": meta, "markdown": md_text}, ensure_ascii=False),
         )
     except Exception as e:
         return TextContent(type="text", text=f"pubmed read error: {e}")
+
 
 def pubmed_read(paper_id: str) -> str:
     """
@@ -330,6 +355,7 @@ def _parse_day(dt_str: str) -> str:
 
 def _pdf2md(pdf_path: Path, md_path: Path) -> None:
     import pymupdf4llm
+
     md = pymupdf4llm.to_markdown(str(pdf_path), show_progress=False)
     md_path.write_text(md, encoding="utf8")
 
@@ -343,8 +369,8 @@ async def list_tools():
         {
             "name": "arxiv_search",
             "description": "Search for papers on arXiv with advanced filtering. ArXiv has over 1.5 million open "
-                           "access papers in mathematics, physics, computer science, econometrics, econometrics, "
-                           "statistics, electronic engineering, systems science, economics, and other fields.",
+            "access papers in mathematics, physics, computer science, econometrics, econometrics, "
+            "statistics, electronic engineering, systems science, economics, and other fields.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -368,8 +394,8 @@ async def list_tools():
         {
             "name": "pubmed_search",
             "description": "Search for papers on PubMed with advanced filtering.PubMed is a database with over 35 "
-                           "million citations for biomedical literature from MEDLINE, life science journals, "
-                           "and online books.",
+            "million citations for biomedical literature from MEDLINE, life science journals, "
+            "and online books.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -405,8 +431,9 @@ async def call_tool(name: str, arguments: dict):
         return await pubmed_read_async(**arguments)
     raise ValueError(f"Unknown tool {name}")
 
+
 # Export the synchronous functions for external use
-__all__ = ['arxiv_search', 'arxiv_read', 'pubmed_search', 'pubmed_read']
+__all__ = ["arxiv_search", "arxiv_read", "pubmed_search", "pubmed_read"]
 
 
 EMPTY_SERVER_CAPABILITIES = ServerCapabilities(

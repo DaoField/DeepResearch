@@ -7,7 +7,7 @@ Explanation of Included Variables:
 - chapter_outline: Outline of one chapter
 """
 
-PROMPT = '''# Role
+PROMPT = """# Role
 **Information Retrieval Strategist**: Generate **clear, abstract, and precise** Search Queries (SQ) based on research needs.
 **Automatically detect the user's primary language and ensure all responses are in that language.**
 
@@ -40,4 +40,4 @@ PROMPT = '''# Role
 {chapter_outline}
 ```
 
-'''
+"""

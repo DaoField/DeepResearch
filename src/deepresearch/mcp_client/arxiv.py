@@ -1,15 +1,14 @@
 # Copyright (c) 2025 iFLYTEK CO.,LTD.
 # SPDX-License-Identifier: Apache 2.0 License
 
-import json
 import os
-import time
 import random
+import time
 import xml.etree.ElementTree as ET
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
+
 import requests
 
 
@@ -39,16 +38,17 @@ class Query:
         sort_order: Sorting direction.
         throttle_seconds: Delay between pagination requests (seconds).
     """
+
     max_page_number: int = 0
     terms: str = ""
     page_number: int = 0
     max_results_per_page: int = 10
-    article_ids: List[str] = field(default_factory=list)
-    sort_by: Optional[SortBy] = None
-    sort_order: Optional[SortOrder] = None
+    article_ids: list[str] = field(default_factory=list)
+    sort_by: SortBy | None = None
+    sort_order: SortOrder | None = None
     throttle_seconds: int = 3
 
-    def validate(self) -> Optional[str]:
+    def validate(self) -> str | None:
         """
         Validate the query parameters.
 
@@ -71,7 +71,7 @@ class Query:
         if self.max_results_per_page <= 0:
             self.max_results_per_page = 10
 
-    def to_url_params(self) -> Dict[str, Any]:
+    def to_url_params(self) -> dict[str, Any]:
         """
         Convert query parameters to URL parameters dictionary.
 
@@ -107,10 +107,11 @@ class Link:
         type: Link content type.
         title: Link title.
     """
-    rel: Optional[str] = None
+
+    rel: str | None = None
     href: str = ""
-    type: Optional[str] = None
-    title: Optional[str] = None
+    type: str | None = None
+    title: str | None = None
 
 
 @dataclass
@@ -123,9 +124,10 @@ class Person:
         uri: Author's URI.
         email: Author's email.
     """
+
     name: str = ""
-    uri: Optional[str] = None
-    email: Optional[str] = None
+    uri: str | None = None
+    email: str | None = None
 
 
 @dataclass
@@ -137,7 +139,8 @@ class Text:
         type: Text type.
         body: Text content.
     """
-    type: Optional[str] = None
+
+    type: str | None = None
     body: str = ""
 
 
@@ -156,14 +159,15 @@ class Entry:
         summary: Paper summary.
         content: Paper content.
     """
+
     title: str = ""
     id: str = ""
-    link: List[Link] = field(default_factory=list)
+    link: list[Link] = field(default_factory=list)
     published: str = ""
     updated: str = ""
-    author: List[Person] = field(default_factory=list)
-    summary: Optional[Text] = None
-    content: Optional[Text] = None
+    author: list[Person] = field(default_factory=list)
+    summary: Text | None = None
+    content: Text | None = None
 
 
 @dataclass
@@ -178,11 +182,12 @@ class Feed:
         updated: Last updated date.
         entry: List of paper entries.
     """
+
     title: str = ""
     id: str = ""
-    link: List[Link] = field(default_factory=list)
+    link: list[Link] = field(default_factory=list)
     updated: str = ""
-    entry: List[Entry] = field(default_factory=list)
+    entry: list[Entry] = field(default_factory=list)
 
 
 @dataclass
@@ -195,9 +200,10 @@ class ResultsPage:
         page_number: Current page number.
         error: Error message if any.
     """
-    feed: Optional[Feed] = None
+
+    feed: Feed | None = None
     page_number: int = 0
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class Client:
@@ -214,9 +220,11 @@ class Client:
         self.base_url = "https://export.arxiv.org"
         self.recommended_throttle_duration = 3  # seconds
         self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        })
+        self.session.headers.update(
+            {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+        )
 
     def parse_atom_feed(self, xml_content: bytes) -> Feed:
         """
@@ -256,7 +264,7 @@ class Client:
                 rel=link_elem.get("rel"),
                 href=link_elem.get("href", ""),
                 type=link_elem.get("type"),
-                title=link_elem.get("title")
+                title=link_elem.get("title"),
             )
             feed.link.append(link)
 
@@ -287,7 +295,7 @@ class Client:
                     rel=link_elem.get("rel"),
                     href=link_elem.get("href", ""),
                     type=link_elem.get("type"),
-                    title=link_elem.get("title")
+                    title=link_elem.get("title"),
                 )
                 entry.link.append(link)
 
@@ -312,23 +320,21 @@ class Client:
             summary_elem = entry_elem.find("./atom:summary", namespaces)
             if summary_elem is not None:
                 entry.summary = Text(
-                    type=summary_elem.get("type"),
-                    body=summary_elem.text or ""
+                    type=summary_elem.get("type"), body=summary_elem.text or ""
                 )
 
             # Extract content
             content_elem = entry_elem.find("./atom:content", namespaces)
             if content_elem is not None:
                 entry.content = Text(
-                    type=content_elem.get("type"),
-                    body=content_elem.text or ""
+                    type=content_elem.get("type"), body=content_elem.text or ""
                 )
 
             feed.entry.append(entry)
 
         return feed
 
-    def search(self, query: Query) -> List[ResultsPage]:
+    def search(self, query: Query) -> list[ResultsPage]:
         """
         Search ArXiv for papers matching the query.
 
@@ -382,13 +388,19 @@ class Client:
 
                 # Check if we've exceeded max page number
                 current_query.page_number += 1
-                if query.max_page_number > 0 and current_query.page_number >= query.max_page_number:
+                if (
+                    query.max_page_number > 0
+                    and current_query.page_number >= query.max_page_number
+                ):
                     break
 
                 # Throttle with exponential backoff + jitter to avoid API rate limiting
                 # Uses capped exponential backoff: min(base * 2^attempt + jitter, max_delay)
                 if throttle_duration > 0:
-                    _backoff = min(throttle_duration * (2 ** min(results.index(result_page), 5)), 30.0) + random.uniform(0, 1)
+                    _backoff = min(
+                        throttle_duration * (2 ** min(results.index(result_page), 5)),
+                        30.0,
+                    ) + random.uniform(0, 1)
                     time.sleep(_backoff)
 
             except Exception as e:
@@ -398,7 +410,7 @@ class Client:
 
         return results
 
-    def download_paper(self, paper_id: str, parent_path: str) -> Optional[str]:
+    def download_paper(self, paper_id: str, parent_path: str) -> str | None:
         """
         Download a paper by its ID.
 
@@ -426,7 +438,7 @@ class Client:
             response.raise_for_status()
 
             # Save to file
-            with open(file_path, 'wb') as f:
+            with open(file_path, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         f.write(chunk)
@@ -441,7 +453,7 @@ class Client:
 default_client = Client()
 
 
-def search(query: Query) -> List[ResultsPage]:
+def search(query: Query) -> list[ResultsPage]:
     """
     Convenience function to search using the default client.
 
@@ -454,7 +466,7 @@ def search(query: Query) -> List[ResultsPage]:
     return default_client.search(query)
 
 
-def download_paper(paper_id: str, parent_path: str) -> Optional[str]:
+def download_paper(paper_id: str, parent_path: str) -> str | None:
     """
     Convenience function to download a paper using the default client.
 

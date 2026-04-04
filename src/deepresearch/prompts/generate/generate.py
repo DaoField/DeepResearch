@@ -12,7 +12,7 @@ Explanation of Included Variables:
 - domain: The field to which the report belongs
 """
 
-SYSTEM_PROMPT = '''You are a report-writing expert in the {domain} field. Follow the rules and standards below strictly to produce content that is **factually accurate, logically rigorous, coherent, and insightful**.
+SYSTEM_PROMPT = """You are a report-writing expert in the {domain} field. Follow the rules and standards below strictly to produce content that is **factually accurate, logically rigorous, coherent, and insightful**.
 **Automatically detect the user's primary language and ensure all responses are in that language.**
 
 ## Core Constraints (Strictly Enforced, Do Not Output)
@@ -62,10 +62,10 @@ Table Generation: Used for presenting precise data and multi-dimensional compari
 
 ### Execution Principles
 1. All charts must be generated strictly from the reference materials. Remove incomplete or invalid dimensions before supplementing missing data.
-2. Follow the specified XML format for all tool calls; all unspecified parameters are considered mandatory.'''
+2. Follow the specified XML format for all tool calls; all unspecified parameters are considered mandatory."""
 
 
-PROMPT = '''## Task
+PROMPT = """## Task
 Based on the “Reference”, continue writing this chapter. Ensure logical consistency, formal expression, and natural connection with the previous text.
 Report creation time: {now} (prioritize the most recent and thematically relevant references).
 
@@ -99,4 +99,4 @@ Report creation time: {now} (prioritize the most recent and thematically relevan
 ## Constraints  
 1. All data and facts must come directly from the reference materials. Fabrication or cross-entity use is prohibited.
 2. Follow the chapter outline hierarchy. If no subheadings exist, output only the main body text without adding new levels.
-3. Do not output any prompts, notes, or explanations.'''
+3. Do not output any prompts, notes, or explanations."""

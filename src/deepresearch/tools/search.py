@@ -1,8 +1,7 @@
 # Copyright (c) 2025 IFLYTEK Ltd.
 # SPDX-License-Identifier: Apache 2.0 License
 
-from typing import *
-import asyncio
+from typing import List
 
 from deepresearch.config.search_config import search_config
 from deepresearch.tools import _search
@@ -14,7 +13,9 @@ SearchResult = _search.SearchResult
 
 class SearchClient:
     """Search client factory"""
+
     _client: _search.SearchClient
+
     def __init__(self) -> None:
         if search_config.engine == "jina":
             self._client = JinaSearchClient()
@@ -36,10 +37,11 @@ class SearchClient:
         """
         return self._client.search(query, top_n)
 
+
 if __name__ == "__main__":
     # Example usage
     search_client = SearchClient()
     results = search_client.search("Python asyncio", 2)
     for result in results:
-        print(f'{result.title}: {result.url} ({result.summary})')
-        print('--------------------------------------------------')
+        print(f"{result.title}: {result.url} ({result.summary})")
+        print("--------------------------------------------------")

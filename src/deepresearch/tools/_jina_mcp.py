@@ -1,15 +1,15 @@
 # Copyright (c) 2025 IFLYTEK Ltd.
 # SPDX-License-Identifier: Apache 2.0 License
 
-from typing import *
-import re
 import asyncio
+import re
+from typing import *
 
 from mcp.client.session import ClientSession
 from mcp.client.sse import sse_client
 
 from deepresearch.config.search_config import search_config
-from deepresearch.tools._search import SearchClient, SearchResult
+from deepresearch.tools._search import SearchResult
 
 
 class JinaMcpSearchClient:
@@ -22,10 +22,10 @@ class JinaMcpSearchClient:
         self._timeout = search_config.timeout
 
         # Compile regex patterns once for efficiency
-        self._title_re = re.compile(r'title: (.*?)(?=\n)', re.DOTALL)
-        self._url_re = re.compile(r'url: (.*?)(?=\n)', re.DOTALL)
-        self._snippet_re = re.compile(r'snippet: (.*)', re.DOTALL)
-        self._content_re = re.compile(r'content: (.*)', re.DOTALL)
+        self._title_re = re.compile(r"title: (.*?)(?=\n)", re.DOTALL)
+        self._url_re = re.compile(r"url: (.*?)(?=\n)", re.DOTALL)
+        self._snippet_re = re.compile(r"snippet: (.*)", re.DOTALL)
+        self._content_re = re.compile(r"content: (.*)", re.DOTALL)
 
     async def search(self, query: str, top_n: int) -> List[SearchResult]:
         """
@@ -39,14 +39,16 @@ class JinaMcpSearchClient:
             List of SearchResult objects containing search information
         """
         async with sse_client(
-                url=self._server_url,
-                headers={"Authorization": f"Bearer {self._auth_token}"}
+            url=self._server_url,
+            headers={"Authorization": f"Bearer {self._auth_token}"},
         ) as (read_stream, write_stream):
             async with ClientSession(read_stream, write_stream) as session:
                 await session.initialize()
                 return await self._search(session, query, top_n)
 
-    async def _search(self, session: ClientSession, query: str, top_n: int) -> List[SearchResult]:
+    async def _search(
+        self, session: ClientSession, query: str, top_n: int
+    ) -> List[SearchResult]:
         """
         Internal search implementation that handles the actual search logic
 
@@ -63,8 +65,7 @@ class JinaMcpSearchClient:
         try:
             # Perform web search
             search_tool_result = await session.call_tool(
-                name="search_web",
-                arguments={"query": query, "num": top_n}
+                name="search_web", arguments={"query": query, "num": top_n}
             )
 
             # Process each search result if content exists
@@ -84,12 +85,12 @@ class JinaMcpSearchClient:
 
                         title = title_match.group(1).strip()
                         url = url_match.group(1).strip()
-                        snippet = snippet_match.group(1).strip().split('\ndate')[0]
+                        snippet = snippet_match.group(1).strip().split("\ndate")[0]
 
                         # Create task for concurrent processing
-                        url_tasks.append(self._fetch_url_content(
-                            session, title, snippet, url
-                        ))
+                        url_tasks.append(
+                            self._fetch_url_content(session, title, snippet, url)
+                        )
 
                 # Process all URLs concurrently
                 if url_tasks:
@@ -102,11 +103,7 @@ class JinaMcpSearchClient:
         return search_results
 
     async def _fetch_url_content(
-            self,
-            session: ClientSession,
-            title: str,
-            snippet: str,
-            url: str
+        self, session: ClientSession, title: str, snippet: str, url: str
     ) -> Optional[SearchResult]:
         """
         Fetch content from a URL asynchronously
@@ -123,16 +120,18 @@ class JinaMcpSearchClient:
         try:
             # Fetch content from URL
             read_result = await session.call_tool(
-                name="read_url",
-                arguments={"url": url}
+                name="read_url", arguments={"url": url}
             )
 
             # Extract and process content
             if hasattr(read_result, "content"):
-                full_text = ''.join([
-                    content.text for content in read_result.content
-                    if content.type == "text"
-                ])
+                full_text = "".join(
+                    [
+                        content.text
+                        for content in read_result.content
+                        if content.type == "text"
+                    ]
+                )
 
                 content_match = self._content_re.search(full_text)
                 if content_match:
@@ -159,6 +158,4 @@ if __name__ == "__main__":
             print(f"Summary: {result.summary}")
             print(f"Content: {result.content[:200]}...")
 
-
     asyncio.run(main())
-

@@ -1,12 +1,14 @@
 # Copyright (c) 2025 IFLYTEK Ltd.
 # SPDX-License-Identifier: Apache 2.0 License
 
-from typing import *
 from dataclasses import dataclass
+from typing import *
+
 
 @dataclass(kw_only=True)
 class SearchResult:
     """Data structure to hold search result information"""
+
     url: str
     title: str
     summary: str
@@ -14,8 +16,10 @@ class SearchResult:
     date: str = ""
     id: int = 0
 
+
 class SearchClient:
     """Base class for search clients"""
+
     def search(self, query: str, top_n: int) -> List[SearchResult]:
         """
         Perform a web search and retrieve results

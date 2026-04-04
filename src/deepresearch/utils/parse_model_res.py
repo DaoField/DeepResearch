@@ -7,7 +7,7 @@ from functools import lru_cache
 @lru_cache(maxsize=128)
 def _compile_xml_tag_regex(tag: str) -> re.Pattern:
     """Cache compiled regex patterns for XML tag extraction to avoid recompilation on each call."""
-    return re.compile(rf'<{tag}>(.*?)</{tag}>', re.DOTALL | re.IGNORECASE)
+    return re.compile(rf"<{tag}>(.*?)</{tag}>", re.DOTALL | re.IGNORECASE)
 
 
 def extract_xml_content(xml_str: str, tag: str) -> list[str]:
@@ -27,5 +27,5 @@ def extract_xml_content(xml_str: str, tag: str) -> list[str]:
     return None
 
 
-if __name__ == '__main__':
-    print(extract_xml_content(xml_str='<xml>test1</xml>\n<xml>test2</xml>', tag='xml'))
+if __name__ == "__main__":
+    print(extract_xml_content(xml_str="<xml>test1</xml>\n<xml>test2</xml>", tag="xml"))

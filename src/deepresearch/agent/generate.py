@@ -1,28 +1,27 @@
 # Copyright (c) 2025 iFLYTEK CO.,LTD.
 # SPDX-License-Identifier: Apache 2.0 License
-import json
 import logging
 import os
-from dataclasses import dataclass
-from typing import List
 import re
+import time
+from dataclasses import dataclass
+from datetime import datetime
 
 from langchain_core.runnables import RunnableConfig
 
-from .message import ReportState
 from deepresearch.llms.llm import llm
-from datetime import datetime
-import time
-
 from deepresearch.prompts import apply_prompt_template
+from deepresearch.tools.md2html import markdown2html
 from deepresearch.utils.parse_model_res import extract_xml_content
 from deepresearch.utils.print_util import colored_print
-from deepresearch.tools.md2html import markdown2html
+
+from .message import ReportState
 
 logger = logging.getLogger(__name__)
 
 # Pre-compiled regex for reference pattern replacement (used in stream processing loop)
 _REF_PATTERN = re.compile(r"(\[\^[^\[\]]+\] *)+")
+
 
 def generate_node(state: ReportState):
 
@@ -31,6 +30,7 @@ def generate_node(state: ReportState):
     colored_print(f"{'#' * outline.level} {outline.title}\n", color="green", end="")
     final_report += f"{'#' * outline.level} {outline.title}\n"
     for level2_chapter in outline.sub_chapter:
+
         def ref_replace(s: str) -> str:
             """
             Replace the reference IDs in the string with the corresponding actual reference IDs
@@ -39,13 +39,15 @@ def generate_node(state: ReportState):
             :param chapter: Chapter object containing the LearningKnowledge attribute
             :return: Replaced string
             """
-            all_id = re.findall(r'\d+', s)
-            m: List[int] = []
+            all_id = re.findall(r"\d+", s)
+            m: list[int] = []
             for s2 in all_id:
                 try:
                     id = int(s2)
                     if 0 <= id < len(level2_chapter.learning_knowledge):
-                        ref_ids = level2_chapter.learning_knowledge[id]["real_reference"]
+                        ref_ids = level2_chapter.learning_knowledge[id][
+                            "real_reference"
+                        ]
                         m.extend(ref_ids)
                 except ValueError:
                     continue
@@ -54,20 +56,22 @@ def generate_node(state: ReportState):
             prev = None
             for num in m:
                 if num != prev:
-                    result.append(f"[^%d]" % num)
+                    result.append("[^%d]" % num)
                     prev = num
-            return ''.join(result)
+            return "".join(result)
 
         chapter_title = f"{'#' * level2_chapter.level} {level2_chapter.title}"
         colored_print(f"{chapter_title}\n", color="green", end="")
 
-        prev_report = final_report + f'\n{chapter_title}\n'
-        chapter_report = ''
+        prev_report = final_report + f"\n{chapter_title}\n"
+        chapter_report = ""
 
         level2_chapter.merge_knowledge()
         knowledge = level2_chapter.get_knowledge_str()
         content_processor = ContentProcessor(knowledge)
-        for thinking, content in llm(llm_type="report", messages=apply_prompt_template(
+        for thinking, content in llm(
+            llm_type="report",
+            messages=apply_prompt_template(
                 prompt_name="generate/generate",
                 state={
                     "domain": state.get("domain"),
@@ -76,9 +80,11 @@ def generate_node(state: ReportState):
                     "chapter_outline": level2_chapter.get_outline(),
                     "outline": outline.get_outline(),
                     "reference": knowledge,
-                    "above": prev_report
-                }
-        ), stream=True):
+                    "above": prev_report,
+                },
+            ),
+            stream=True,
+        ):
             if thinking:
                 colored_print(thinking, color="orange", end="")
             if content:
@@ -86,24 +92,26 @@ def generate_node(state: ReportState):
                 if output_strs:
                     for output_str in output_strs:
                         # Use pre-compiled regex (module-level _REF_PATTERN) to avoid recompilation per chunk
-                        output_str = _REF_PATTERN.sub(lambda m: ref_replace(m.group(0)), output_str)
+                        output_str = _REF_PATTERN.sub(
+                            lambda m: ref_replace(m.group(0)), output_str
+                        )
                         chapter_report += output_str
                         colored_print(output_str, color="green", end="")
-        colored_print('\n', color="green")
+        colored_print("\n", color="green")
         if chapter_report.count(chapter_title):
-            final_report = final_report + '\n' + chapter_report
+            final_report = final_report + "\n" + chapter_report
         else:
             final_report = prev_report + chapter_report
 
     return {
-                "final_report": final_report,
-                "output": {
-                    "message": final_report,
-                }
-            }
+        "final_report": final_report,
+        "output": {
+            "message": final_report,
+        },
+    }
 
 
-def save_report_local(state: ReportState, config:RunnableConfig):
+def save_report_local(state: ReportState, config: RunnableConfig):
     """
     whether to save report locally
     """
@@ -122,14 +130,14 @@ def save_local_node(state: ReportState, config: RunnableConfig):
     file_base = f"report_{str(int(time.time() * 1000))}"
     try:
         os.makedirs(save_path, exist_ok=True)
-    except OSError as e:
+    except OSError:
         logger.error(f"Failed to create directory: {save_path}")
     report = state.get("final_report")
     knowledge = state.get("knowledge")
     references = [f"[^{k['id']}]: {k['url']}" for k in knowledge]
-    references = '\n'.join(references)
+    references = "\n".join(references)
     report = f"{report}\n\n{references}"
-    with open(os.path.join(save_path, f"{file_base}.md"), 'w', encoding='utf-8') as f:
+    with open(os.path.join(save_path, f"{file_base}.md"), "w", encoding="utf-8") as f:
         f.write(report)
     outline = state.get("outline")
     need_html = config.get("configurable", {}).get("save_as_html", True)
@@ -138,11 +146,15 @@ def save_local_node(state: ReportState, config: RunnableConfig):
         file_name = f"{file_base}.html"
         file_path = os.path.join(save_path, file_name)
         try:
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(html)
-            colored_print("The report is saved in ", color="red", bg_color="black", end="")
-            colored_print(file_path, color="red", bg_color="black", bold=True, underline=True)
-        except Exception as e:
+            colored_print(
+                "The report is saved in ", color="red", bg_color="black", end=""
+            )
+            colored_print(
+                file_path, color="red", bg_color="black", bold=True, underline=True
+            )
+        except Exception:
             logger.error(f"Failed to save report: {file_path}")
 
 
@@ -171,8 +183,10 @@ class ContentProcessor:
         self.report = self.report + content
         for char in content:
             self._process_char(char)
-        if self.status == OutputStatus.NormalContentStatus \
-                or self.status == OutputStatus.MaybeReferenceInEnd:
+        if (
+            self.status == OutputStatus.NormalContentStatus
+            or self.status == OutputStatus.MaybeReferenceInEnd
+        ):
             if check_reference_end(self.buffer):
                 self.status = OutputStatus.MaybeReferenceInEnd
             else:
@@ -192,8 +206,10 @@ class ContentProcessor:
         return None
 
     def _process_char(self, char: str):
-        if self.status == OutputStatus.NormalContentStatus \
-                or self.status == OutputStatus.MaybeReferenceInEnd:
+        if (
+            self.status == OutputStatus.NormalContentStatus
+            or self.status == OutputStatus.MaybeReferenceInEnd
+        ):
             if char == "<":
                 self.status = OutputStatus.ToolsStartMatch
                 if self.buffer:
@@ -241,14 +257,18 @@ class ContentProcessor:
                 above = self.report[index:]
             else:
                 above = self.report
-            chart = llm(llm_type="report", messages=apply_prompt_template(
-                prompt_name="generate/chart",
-                state={
-                    "above": above,
-                    "description": description,
-                    "reference": self.knowledge
-                }
-            ), stream=False)
+            chart = llm(
+                llm_type="report",
+                messages=apply_prompt_template(
+                    prompt_name="generate/chart",
+                    state={
+                        "above": above,
+                        "description": description,
+                        "reference": self.knowledge,
+                    },
+                ),
+                stream=False,
+            )
 
             input_schema = extract_xml_content(chart, "input_schema")
             if not input_schema:
@@ -274,39 +294,40 @@ class ContentProcessor:
                 return ""
 
 
-
 def check_reference_end(sb: str) -> bool:
     """
     Check if the reference has ended and determine if caching needs to continue
         params sb: Content in string builder (passed in string form)
         return: If the reference has ended, return True; otherwise, return False
     """
-    last_bracket_open = sb.rfind('[')
-    last_bracket_close = sb.rfind(']')
+    last_bracket_open = sb.rfind("[")
+    last_bracket_close = sb.rfind("]")
     if last_bracket_open >= 0 and last_bracket_close < last_bracket_open:
         return True
 
-    trim_right = sb.rstrip(' ')
-    if len(trim_right) > 0 and trim_right[-1] == ']':
+    trim_right = sb.rstrip(" ")
+    if len(trim_right) > 0 and trim_right[-1] == "]":
         return True
 
     return False
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cp = ContentProcessor("")
-    contents = ["This is a test case [^",
-                "1].",
-                "I will test whether multiple",
-                " consecutive references [^2]",
-                "[^3] can be correctly parsed and called by the tool",
-                "For example:",
-                "<Table><markdown>", "| h1 | h2 |\n|---|---|\n| v1 | v2 |",
-                "</markdown>",
-                "</Table>Can it be parsed.\n",
-                "This<Tool>",
-                "</Tool>is not"
-                " an effective tool"]
+    contents = [
+        "This is a test case [^",
+        "1].",
+        "I will test whether multiple",
+        " consecutive references [^2]",
+        "[^3] can be correctly parsed and called by the tool",
+        "For example:",
+        "<Table><markdown>",
+        "| h1 | h2 |\n|---|---|\n| v1 | v2 |",
+        "</markdown>",
+        "</Table>Can it be parsed.\n",
+        "This<Tool>",
+        "</Tool>is not an effective tool",
+    ]
     for content in contents:
         results = cp.process_content(content)
         print("=" * 30)

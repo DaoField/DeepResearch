@@ -7,7 +7,7 @@ Explanation of Included Variables:
 - chapter_outline: Outline of one chapter
 """
 
-PROMPT = '''# Role  
+PROMPT = """# Role  
 **Information Extraction Specialist**: Extract **facts that directly support the user’s request** from the reference materials and organize them into structured knowledge points.
 **Automatically detect the user's primary language and ensure all responses are in that language.**
 
@@ -47,4 +47,4 @@ PROMPT = '''# Role
 {search}
 
 ## User Query
-{chapter_outline}'''
+{chapter_outline}"""

@@ -7,7 +7,7 @@ Explanation of Included Variables:
 - chapter_outline: Outline of one chapter
 """
 
-PROMPT = '''# Role
+PROMPT = """# Role
 You are a **content evaluation specialist**, skilled in determining whether the provided information is **complete and well-supported** in relation to the writing task.
 **Automatically detect the user's primary language and ensure all responses are in that language.**
 
@@ -78,4 +78,4 @@ Strictly follow this JSON structure:
 
 ## draft
 {draft}
-'''
+"""

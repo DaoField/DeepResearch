@@ -1,33 +1,38 @@
 # Copyright (c) 2025 iFLYTEK CO.,LTD.
 # SPDX-License-Identifier: Apache 2.0 License
 import json
-from typing import List
+import logging
+import re
+from datetime import datetime
 
-from .message import ReportState, Chapter
+from langgraph.types import Command
+
+from deepresearch.config.workflow_config import workflow_configs
 from deepresearch.llms.llm import llm
 from deepresearch.prompts.template import apply_prompt_template
-from deepresearch.utils.print_util import colored_print
-from langgraph.types import Command
 from deepresearch.tools.search import SearchClient
-from deepresearch.config.workflow_config import workflow_configs
-import logging
-from datetime import datetime
-import re
 from deepresearch.utils.parse_model_res import extract_xml_content
+from deepresearch.utils.print_util import colored_print
+
+from .message import Chapter, ReportState
 
 logger = logging.getLogger(__name__)
 
 
 def outline_search_node(state: ReportState):
     """Search some knowledge for outline."""
-    sq = llm(llm_type="query_generation", messages=apply_prompt_template(
-        prompt_name="outline/outline_sq",
-        state={
-            "now": datetime.now().strftime("%a %b %d %Y"),
-            "query": state.get("topic"),
-            "reasoning": state.get("logic")
-        }
-    ), stream=False)
+    sq = llm(
+        llm_type="query_generation",
+        messages=apply_prompt_template(
+            prompt_name="outline/outline_sq",
+            state={
+                "now": datetime.now().strftime("%a %b %d %Y"),
+                "query": state.get("topic"),
+                "reasoning": state.get("logic"),
+            },
+        ),
+        stream=False,
+    )
     search_queries = extract_xml_content(sq, "search")
     search_client = SearchClient()
     search_id = state.get("search_id", 1)
@@ -35,16 +40,16 @@ def outline_search_node(state: ReportState):
 
     # Parallel search execution with bounded concurrency
     from concurrent.futures import ThreadPoolExecutor, as_completed
+
     max_workers = min(len(search_queries), 5)
 
     def _single_outline_search(search_query):
-        colored_print(f'Searching: {search_query}', color="purple")
-        results = search_client.search(search_query,
-                                             workflow_configs.
-                                             get("search", {}).
-                                             get("topN", 5))
+        colored_print(f"Searching: {search_query}", color="purple")
+        results = search_client.search(
+            search_query, workflow_configs.get("search", {}).get("topN", 5)
+        )
         for result in results:
-            colored_print(f'{result.title} -- ', color="cyan", end="")
+            colored_print(f"{result.title} -- ", color="cyan", end="")
             colored_print(result.url, color="blue", underline=True)
         return (search_query, results)
 
@@ -53,7 +58,9 @@ def outline_search_node(state: ReportState):
         collected = [None] * len(search_queries)
         query_index = {q: i for i, q in enumerate(search_queries)}
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_map = {executor.submit(_single_outline_search, q): q for q in search_queries}
+            future_map = {
+                executor.submit(_single_outline_search, q): q for q in search_queries
+            }
             for future in as_completed(future_map):
                 q, results = future.result()
                 idx = query_index[q]
@@ -77,10 +84,13 @@ def outline_search_node(state: ReportState):
         "knowledge": outline_knowledge,
     }
 
+
 def outline_node(state: ReportState):
     """Generate outline for this report"""
     outline = ""
-    for think, content in llm(llm_type="planner", messages=apply_prompt_template(
+    for think, content in llm(
+        llm_type="planner",
+        messages=apply_prompt_template(
             prompt_name="outline/outline",
             state={
                 "domain": state.get("domain"),
@@ -88,26 +98,24 @@ def outline_node(state: ReportState):
                 "query": state.get("topic"),
                 "reasoning": state.get("logic"),
                 "thinking": state.get("details"),
-                "reference": outline_knowledge_2_str(state.get("outline_knowledge", ""))
-            }
-    ), stream=True):
+                "reference": outline_knowledge_2_str(
+                    state.get("outline_knowledge", "")
+                ),
+            },
+        ),
+        stream=True,
+    ):
         if think:
             colored_print(think, color="orange", end="")
         if content:
             outline += content
     try:
         chapter = parse_outline(outline)
-    except ValueError as e:
+    except ValueError:
         logger.error(f"outline is invalid: {outline}")
-        return Command(goto="__end__",
-                      update={
-                          "output": {
-                              "message": outline
-                          }})
+        return Command(goto="__end__", update={"output": {"message": outline}})
     colored_print("\n\n" + chapter.get_outline(), color="green", end="")
-    return Command(goto="learning", update={
-        "outline": chapter
-    })
+    return Command(goto="learning", update={"outline": chapter})
 
 
 def outline_knowledge_2_str(outline_knowledge, max_length=100000):
@@ -117,7 +125,7 @@ def outline_knowledge_2_str(outline_knowledge, max_length=100000):
     """
     if not outline_knowledge:
         return "[]"
-        
+
     result = []
     total_length = 0
 
@@ -139,12 +147,12 @@ def outline_knowledge_2_str(outline_knowledge, max_length=100000):
 
     try:
         return json.dumps(result, ensure_ascii=False)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return "[]"
 
 
-markdown_regexp = re.compile(r'(?s)```\s*markdown\n(.*)```')
-title_regexp = re.compile(r'^(#+)\s+(.*)')
+markdown_regexp = re.compile(r"(?s)```\s*markdown\n(.*)```")
+title_regexp = re.compile(r"^(#+)\s+(.*)")
 
 
 def parse_outline(outline_str: str) -> Chapter:
@@ -156,9 +164,9 @@ def parse_outline(outline_str: str) -> Chapter:
     root = Chapter(id=0, level=0)
     current_chapter = root
     id_counter = 0
-    title_list: List[str] = []
+    title_list: list[str] = []
 
-    lines = outline_str.split('\n')
+    lines = outline_str.split("\n")
 
     # 解析标题并构建章节结构
     for line in lines:
@@ -183,7 +191,9 @@ def parse_outline(outline_str: str) -> Chapter:
                 current_chapter = root
 
             # 创建新章节
-            new_chapter = Chapter(id=id_counter, level=level, title=title, parent_chapter=current_chapter)
+            new_chapter = Chapter(
+                id=id_counter, level=level, title=title, parent_chapter=current_chapter
+            )
 
             current_chapter.sub_chapter.append(new_chapter)
             current_chapter = new_chapter
@@ -210,7 +220,7 @@ def parse_outline(outline_str: str) -> Chapter:
     return root_chapter
 
 
-def parent_to_nil(chapters: List[Chapter]) -> None:
+def parent_to_nil(chapters: list[Chapter]) -> None:
     for chapter in chapters:
         chapter.parent_chapter = None
         parent_to_nil(chapter.sub_chapter)

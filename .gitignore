@@ -9,3 +9,4 @@ dist/
 *.egg-info/
 paper_cache/
 _version.py
+.ruff_cache/

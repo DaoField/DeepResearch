@@ -6,7 +6,41 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
+      timezone: "Asia/Shanghai"
     open-pull-requests-limit: 10
     reviewers:
       - "CzChu"
       - "xinetzone"
+    assignees:
+      - "CzChu"
+    labels:
+      - "dependencies"
+      - "automated"
+    commit-message:
+      prefix: "⬆️"
+      prefix-development: "⬆️ dev"
+      include: "scope"
+    groups:
+      production-dependencies:
+        dependency-type: "production"
+      development-dependencies:
+        dependency-type: "development"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "CzChu"
+      - "xinetzone"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "automated"
+    commit-message:
+      prefix: "⬆️ ci"
+      include: "scope"

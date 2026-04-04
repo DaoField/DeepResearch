@@ -1,10 +1,11 @@
 # Copyright (c) 2025 iFLYTEK CO.,LTD.
 # SPDX-License-Identifier: Apache 2.0 License
 
-import os
 import importlib
+import os
 import sys
-from typing import Dict, List, Any
+from typing import Any
+
 from langchain_core.messages import HumanMessage, SystemMessage
 
 # Define directories containing prompt templates (relative or absolute paths)
@@ -21,7 +22,7 @@ if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
 
-def load_prompt_templates() -> Dict[str, str]:
+def load_prompt_templates() -> dict[str, str]:
     """
     Dynamically loads prompt templates from specified directories.
 
@@ -31,7 +32,7 @@ def load_prompt_templates() -> Dict[str, str]:
     Returns:
         Dict[str, str]: Mapping of template names to their content
     """
-    prompt_templates: Dict[str, str] = {}
+    prompt_templates: dict[str, str] = {}
 
     for prompts_dir in PROMPTS_DIRS:
         # Skip if directory doesn't exist
@@ -70,11 +71,11 @@ def load_prompt_templates() -> Dict[str, str]:
 
 
 # Global storage for all loaded prompt templates (lazy loading)
-PROMPT_TEMPLATES: Dict[str, str] = {}
+PROMPT_TEMPLATES: dict[str, str] = {}
 _PROMPTS_LOADED = False
 
 
-def load_prompt_templates_lazy() -> Dict[str, str]:
+def load_prompt_templates_lazy() -> dict[str, str]:
     """
     Lazily loads prompt templates from specified directories.
     Only loads templates once when first called.
@@ -86,10 +87,7 @@ def load_prompt_templates_lazy() -> Dict[str, str]:
     return PROMPT_TEMPLATES
 
 
-def apply_prompt_template(
-        prompt_name: str,
-        state: Dict[str, Any]
-) -> List:
+def apply_prompt_template(prompt_name: str, state: dict[str, Any]) -> list:
     """
     Applies variables to a prompt template and returns formatted messages.
 
@@ -144,7 +142,7 @@ if __name__ == "__main__":
                 "outline": "# report\n## chapter 1\n## chapter 2",
                 "reference": "some knowledge",
                 "domain": "unknown",
-            }
+            },
         )
         print("Results for generate/generate template:")
         for msg in generate_messages:
@@ -157,10 +155,7 @@ if __name__ == "__main__":
     try:
         classify_messages = apply_prompt_template(
             prompt_name="prep/classify",
-            state={
-                "query": "this is a query",
-                "messages": [HumanMessage("test")]
-            }
+            state={"query": "this is a query", "messages": [HumanMessage("test")]},
         )
         print("\n---\nResults for classify/classify template:")
         for msg in classify_messages:
@@ -168,4 +163,3 @@ if __name__ == "__main__":
 
     except Exception as e:
         print(f"Error with classify template: {str(e)}")
-

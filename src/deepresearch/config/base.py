@@ -4,25 +4,29 @@
 import os
 import tomllib
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field, fields, replace
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Callable, ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 
 class ConfigError(Exception):
     """配置加载错误。"""
+
     pass
 
 
 class ValidationError(ConfigError):
     """配置验证错误。"""
+
     pass
 
 
 class ConfigSource(Enum):
     """配置来源枚举。"""
+
     DEFAULT = "default"
     FILE = "file"
     ENV = "env"
@@ -83,7 +87,7 @@ class ConfigField:
     """配置字段定义（向后兼容，建议使用 config_field 函数）。"""
 
     default: Any = None
-    validators: list["ConfigValidator"] = field(default_factory=list)
+    validators: list[ConfigValidator] = field(default_factory=list)
     env_var: str | None = None
     sensitive: bool = False
     description: str = ""
@@ -568,7 +572,7 @@ def load_config(
             try:
                 file_config = config_class.from_file(get_config_dir() / filename)
                 config = config.merge(file_config, ConfigSource.FILE)
-            except (ConfigError, FileNotFoundError):
+            except ConfigError, FileNotFoundError:
                 pass  # 文件不存在时使用默认值
 
         # 从环境变量加载

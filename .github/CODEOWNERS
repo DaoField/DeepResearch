@@ -1,1 +1,22 @@
+# Global code owners
 * @CzChu @xinetzone
+
+# Documentation
+/doc/ @CzChu @xinetzone
+*.md @CzChu @xinetzone
+
+# GitHub configuration
+/.github/ @CzChu @xinetzone
+
+# CI/CD workflows
+/.github/workflows/ @CzChu @xinetzone
+
+# Source code
+/src/ @CzChu @xinetzone
+
+# Tests
+/tests/ @CzChu @xinetzone
+
+# Configuration files
+pyproject.toml @CzChu @xinetzone
+ruff.toml @CzChu @xinetzone

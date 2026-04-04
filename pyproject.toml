@@ -6,7 +6,7 @@ authors = [
     {name = "CzChu", email = "czchu2@iflytek.com"},
     {name = "xinetzone", email = "735613050@qq.com"},
 ]
-requires-python = ">=3.10,<4.0"
+requires-python = ">=3.14,<4.0"
 readme = "README.md"
 license = {file = "LICENSE"}
 dependencies = [
@@ -71,10 +71,31 @@ doc = [
 
 dev = [
     "invoke",
-    "black",
-    "flake8",
+    "ruff",
     "mypy",
+    "taolib",
 ]
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+extend-include = ["*.py"]
+extend-exclude = [
+    ".git",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    "build",
+    "dist",
+    "src/deepresearch/tools/md2html.py",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N"]
+ignore = ["E501", "E101", "W291", "W293", "W605", "F401", "F403", "F405", "F841"]
+
+[tool.ruff.format]
+quote-style = "double"
 
 [project.scripts]
 deepresearch = "deepresearch.cli.utils:main"

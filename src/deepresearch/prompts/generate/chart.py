@@ -8,7 +8,7 @@ Explanation of Included Variables:
 - reference: Reference knowledge
 """
 
-SYSTEM_PROMPT = '''Read the following reference materials carefully and generate an ECharts graph based on the title and description:
+SYSTEM_PROMPT = """Read the following reference materials carefully and generate an ECharts graph based on the title and description:
 **Automatically detect the user's primary language and ensure all responses are in that language.**
 
 ## Output Content
@@ -24,13 +24,13 @@ SYSTEM_PROMPT = '''Read the following reference materials carefully and generate
 	1. Please use the above tool to generate an ECharts graph based on the title and description. Write its name and parameters in the XML format specified above.
 	2. All parameters are mandatory unless otherwise stated.
 	3. You only need to call the above tool.
-	4. You only need to provide the parameters required for the tool call; no explanatory notes are needed.'''
+	4. You only need to provide the parameters required for the tool call; no explanatory notes are needed."""
 
-PROMPT = '''## Chart Description
+PROMPT = """## Chart Description
 {description}
 
 ## Previous Context
 {above}
 
 ## Reference Materials
-{reference}'''
+{reference}"""

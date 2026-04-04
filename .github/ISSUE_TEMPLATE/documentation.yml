@@ -1,4 +1,4 @@
-name: Documentation Improvement
+name: 📚 Documentation Improvement
 description: 改进或修正文档内容
 title: "[Docs] "
 labels: ["documentation", "triage"]
@@ -7,15 +7,18 @@ body:
   - type: markdown
     attributes:
       value: |
+        ## 📚 Documentation Improvement
         感谢您帮助我们改进 DeepResearch 的文档！
 
   - type: checkboxes
-    id: duplicates
+    id: prerequisites
     attributes:
-      label: 是否已经搜索过类似的文档相关 issue？
-      description: 请先搜索现有 issues，确认是否已经有相关的文档问题被报告过。
+      label: 提交前检查
+      description: 请确认您已完成以下检查。
       options:
         - label: 我已经搜索过现有 issues，没有发现类似问题
+          required: true
+        - label: 我已经检查了最新版本的文档
           required: true
 
   - type: dropdown
@@ -30,6 +33,7 @@ body:
         - 内容不够清晰
         - 代码示例错误
         - 格式或结构问题
+        - 翻译问题
         - 其他
     validations:
       required: true
@@ -57,7 +61,7 @@ body:
       label: 建议的内容
       description: 请提供您建议的修改或补充内容。
     validations:
-      required: true
+      required: false
 
   - type: textarea
     id: additional-context

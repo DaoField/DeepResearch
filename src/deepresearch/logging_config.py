@@ -2,11 +2,11 @@
 
 提供统一的日志配置功能，支持控制台和文件输出。
 """
+
 import logging
 import sys
 from pathlib import Path
 from typing import Literal
-
 
 _LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 _DATE_FORMAT = "%Y-%m-%d %H:%M:%S"

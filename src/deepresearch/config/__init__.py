@@ -12,33 +12,33 @@ DeepResearch 配置模块。
 """
 
 from .base import (
-    # 异常类
-    ConfigError,
-    ValidationError,
-    # 枚举
-    ConfigSource,
-    # 配置值包装
-    ConfigValue,
-    # 验证器
-    ConfigValidator,
-    RangeValidator,
-    ChoiceValidator,
-    TypeValidator,
-    # 配置字段定义
-    ConfigField,
     # 配置基类
     BaseConfig,
+    ChoiceValidator,
+    # 异常类
+    ConfigError,
+    # 配置字段定义
+    ConfigField,
     # 配置管理器
     ConfigManager,
+    # 枚举
+    ConfigSource,
+    # 验证器
+    ConfigValidator,
+    # 配置值包装
+    ConfigValue,
+    RangeValidator,
+    TypeValidator,
+    ValidationError,
+    add_sensitive_key,
+    clear_config_cache,
     config_manager,
-    # 便捷函数
-    load_config,
     # 原有函数（向后兼容）
     get_config_dir,
+    # 便捷函数
+    load_config,
     load_toml_config,
     redact_config,
-    clear_config_cache,
-    add_sensitive_key,
     remove_sensitive_key,
 )
 

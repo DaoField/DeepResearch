@@ -40,17 +40,17 @@ DeepResearch is a deep research framework that enables multiple LLMs to collabor
 
 ```bash
 # Clone the repository
-git clone git@github.com:iflytek/DeepResearch.git
+git clone git@github.com:DaoField/DeepResearch.git
 cd DeepResearch
 
 # Install
 pip install -e .
 
 # Run
-deepresearch "Your research topic"
+deepresearch
 ```
 
-📖 **[Detailed Documentation (中文)](doc/intro.md)** - For complete setup instructions, configuration guide, and usage examples.
+📖 **[Detailed Documentation](doc/intro.md)** - For complete setup instructions, configuration guide, and usage examples.
 
 🌐 **[Online Experience](https://xinghuo.xfyun.cn/desk)** - Try "Analysis & Research" on SparkDesk.
 
