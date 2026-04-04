@@ -6,7 +6,7 @@ from functools import lru_cache
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_deepseek import ChatDeepSeek
 
-from deepresearch.config.llms_config import LLMType, llm_configs
+from deepresearch.config.llms_config import LLMType, get_llm_configs
 import logging
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ def _make_llm_instance(llm_type: LLMType,
     Cache key is the tuple (llm_type, streaming, max_tokens).
     """
     try:
-        llm_config = llm_configs[llm_type]
+        llm_config = get_llm_configs()[llm_type]
     except KeyError as e:
         raise KeyError(f"LLM configuration for '{llm_type}' not found") from e
 

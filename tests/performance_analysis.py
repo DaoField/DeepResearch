@@ -10,7 +10,7 @@ import pstats
 from io import StringIO
 import asyncio
 from langchain_core.messages import HumanMessage
-from deepresearch.run import call_agent
+from deepresearch import call_agent
 
 
 def run_performance_analysis():

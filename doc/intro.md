@@ -7,16 +7,14 @@
 :alt: License
 :target: ../LICENSE
 ```
+![repo size](https://img.shields.io/github/repo-size/DaoField/DeepResearch.svg)
+[![GitHub Stars][stars-badge]][stars-link]
+[![GitHub forks][fork-badge]][fork-link]
 
-```{image} https://img.shields.io/github/v/release/DaoField/DeepResearch
-:alt: Version
-:target: https://github.com/DaoField/DeepResearch/releases
-```
-
-```{image} https://img.shields.io/github/stars/DaoField/DeepResearch?style=social
-:alt: GitHub Stars
-:target: https://github.com/DaoField/DeepResearch/stargazers
-```
+[stars-badge]: https://img.shields.io/github/stars/DaoField/DeepResearch?style=social
+[stars-link]: https://github.com/DaoField/DeepResearch/stargazers
+[fork-badge]: https://img.shields.io/github/forks/DaoField/DeepResearch
+[fork-link]: https://github.com/DaoField/DeepResearch/network
 ````
 
 # 项目简介
@@ -55,7 +53,7 @@ DeepResearch专注于解决复杂的信息分析问题，并支持个人开发�
 - 克隆仓库。
 
 ```bash
-git clone git@github.com:iflytek/DeepResearch.git
+git clone git@github.com:DaoField/DeepResearch.git
 ```
 
 - 确保已安装Poetry（推荐版本2.2.1）。
@@ -78,7 +76,7 @@ poetry install
 
 > 注：Poetry 环境激活在不同 shell 中可能有差异。您可以直接使用 `poetry run` 命令来执行 Python 脚本，例如：
 > ```bash
-> poetry run python -m deepresearch.run
+> poetry run python -m deepresearch
 > ```
 
 ### 2. 环境配置

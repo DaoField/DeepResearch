@@ -12,7 +12,7 @@ import statistics
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Dict, Any
 from langchain_core.messages import HumanMessage
-from deepresearch.run import call_agent
+from deepresearch import call_agent
 
 
 class ConcurrencyTest:

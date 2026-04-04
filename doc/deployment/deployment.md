@@ -95,13 +95,13 @@ tavily_api_key = "your_tavily_api_key"
 ### 1. 命令行运行
 
 ```bash
-python -m deepresearch.run "人工智能的发展趋势"
+python -m deepresearch "人工智能的发展趋势"
 ```
 
 ### 2. 作为模块导入
 
 ```python
-from deepresearch.run import call_agent
+from deepresearch import call_agent
 from langchain_core.messages import HumanMessage
 
 messages = [

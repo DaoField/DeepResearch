@@ -3,7 +3,7 @@
 
 from dataclasses import dataclass
 from typing import Dict, Type, TypeVar, Literal
-from .base import load_toml_config, redact_config
+from .base import load_toml_config, redact_config, clear_config_cache
 
 
 T = TypeVar('T', bound='BaseLLMConfig')
@@ -66,13 +66,46 @@ def get_redacted_llm_configs() -> dict:
     return redact_config(raw_config)
 
 
-llm_configs = load_llm_configs()
+def reload_llm_configs() -> None:
+    """重新加载 LLM 配置（清除缓存并重新加载）。"""
+    clear_config_cache()
+    global _llm_configs_cache
+    _llm_configs_cache = None
+
+
+_llm_configs_cache: Dict[str, BaseLLMConfig] | None = None
+
+
+def get_llm_configs() -> Dict[str, BaseLLMConfig]:
+    """获取 LLM 配置（懒加载）。"""
+    global _llm_configs_cache
+    if _llm_configs_cache is None:
+        _llm_configs_cache = load_llm_configs()
+    return _llm_configs_cache
+
 
 LLMType = Literal["basic", "clarify", "planner", "query_generation", "evaluate", "report"]
 
-basic_llm = llm_configs['basic']
-clarify_llm = llm_configs['clarify']
-planner_llm = llm_configs['planner']
-query_generation_llm = llm_configs['query_generation']
-evaluate_llm = llm_configs['evaluate']
-report_llm = llm_configs['report']
+
+def get_basic_llm() -> BaseLLMConfig:
+    return get_llm_configs()['basic']
+
+
+def get_clarify_llm() -> BaseLLMConfig:
+    return get_llm_configs()['clarify']
+
+
+def get_planner_llm() -> BaseLLMConfig:
+    return get_llm_configs()['planner']
+
+
+def get_query_generation_llm() -> BaseLLMConfig:
+    return get_llm_configs()['query_generation']
+
+
+def get_evaluate_llm() -> BaseLLMConfig:
+    return get_llm_configs()['evaluate']
+
+
+def get_report_llm() -> BaseLLMConfig:
+    return get_llm_configs()['report']
