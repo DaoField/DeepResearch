@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-import requests
+import httpx
 
 
 class SortOrder(str, Enum):
@@ -64,7 +64,6 @@ class Query:
         Prepare query parameters for pagination.
         Ensures page_number and max_results_per_page are valid.
         """
-        # Pages are zero-based
         if self.page_number <= 0:
             self.page_number = 0
 
@@ -213,18 +212,23 @@ class Client:
     Attributes:
         base_url: Base URL for ArXiv API.
         recommended_throttle_duration: Recommended delay between requests.
-        session: Requests session for HTTP connections.
+        _client: httpx.Client for HTTP connections.
     """
 
     def __init__(self):
         self.base_url = "https://export.arxiv.org"
-        self.recommended_throttle_duration = 3  # seconds
-        self.session = requests.Session()
-        self.session.headers.update(
-            {
+        self.recommended_throttle_duration = 3
+        self._client = httpx.Client(
+            headers={
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-            }
+            },
+            timeout=httpx.Timeout(30.0),
+            follow_redirects=True,
         )
+
+    def __del__(self):
+        if hasattr(self, "_client"):
+            self._client.close()
 
     def parse_atom_feed(self, xml_content: bytes) -> Feed:
         """
@@ -236,16 +240,12 @@ class Client:
         Returns:
             Parsed Feed object.
         """
-        # Define namespaces
         namespaces = {"atom": "http://www.w3.org/2005/Atom"}
 
-        # Parse XML
         root = ET.fromstring(xml_content)
 
-        # Create feed object
         feed = Feed()
 
-        # Extract feed information
         title_elem = root.find("./atom:title", namespaces)
         if title_elem is not None:
             feed.title = title_elem.text or ""
@@ -258,7 +258,6 @@ class Client:
         if updated_elem is not None:
             feed.updated = updated_elem.text or ""
 
-        # Extract links
         for link_elem in root.findall("./atom:link", namespaces):
             link = Link(
                 rel=link_elem.get("rel"),
@@ -268,11 +267,9 @@ class Client:
             )
             feed.link.append(link)
 
-        # Extract entries
         for entry_elem in root.findall("./atom:entry", namespaces):
             entry = Entry()
 
-            # Extract entry information
             title_elem = entry_elem.find("./atom:title", namespaces)
             if title_elem is not None:
                 entry.title = title_elem.text or ""
@@ -289,7 +286,6 @@ class Client:
             if updated_elem is not None:
                 entry.updated = updated_elem.text or ""
 
-            # Extract entry links
             for link_elem in entry_elem.findall("./atom:link", namespaces):
                 link = Link(
                     rel=link_elem.get("rel"),
@@ -299,7 +295,6 @@ class Client:
                 )
                 entry.link.append(link)
 
-            # Extract authors
             for author_elem in entry_elem.findall("./atom:author", namespaces):
                 person = Person()
                 name_elem = author_elem.find("./atom:name", namespaces)
@@ -316,14 +311,12 @@ class Client:
 
                 entry.author.append(person)
 
-            # Extract summary
             summary_elem = entry_elem.find("./atom:summary", namespaces)
             if summary_elem is not None:
                 entry.summary = Text(
                     type=summary_elem.get("type"), body=summary_elem.text or ""
                 )
 
-            # Extract content
             content_elem = entry_elem.find("./atom:content", namespaces)
             if content_elem is not None:
                 entry.content = Text(
@@ -344,15 +337,12 @@ class Client:
         Returns:
             List of ResultsPage objects containing the search results.
         """
-        # Validate query
         error_msg = query.validate()
         if error_msg:
             return [ResultsPage(error=error_msg)]
 
-        # Prepare for pagination
         query.prepare_for_pagination()
 
-        # Calculate throttle duration
         throttle_duration = self.recommended_throttle_duration
         if query.throttle_seconds >= 1:
             throttle_duration = query.throttle_seconds
@@ -363,30 +353,23 @@ class Client:
         current_query = Query(**query.__dict__)
 
         while True:
-            # Create results page
             result_page = ResultsPage(page_number=current_query.page_number)
 
             try:
-                # Construct URL
                 url = f"{self.base_url}/api/query"
                 params = current_query.to_url_params()
 
-                # Make request
-                response = self.session.get(url, params=params, timeout=30)
+                response = self._client.get(url, params=params)
                 response.raise_for_status()
 
-                # Parse XML response
                 feed = self.parse_atom_feed(response.content)
                 result_page.feed = feed
 
-                # Add to results
                 results.append(result_page)
 
-                # Check if we have more pages
                 if not feed.entry:
                     break
 
-                # Check if we've exceeded max page number
                 current_query.page_number += 1
                 if (
                     query.max_page_number > 0
@@ -394,8 +377,6 @@ class Client:
                 ):
                     break
 
-                # Throttle with exponential backoff + jitter to avoid API rate limiting
-                # Uses capped exponential backoff: min(base * 2^attempt + jitter, max_delay)
                 if throttle_duration > 0:
                     _backoff = min(
                         throttle_duration * (2 ** min(results.index(result_page), 5)),
@@ -421,27 +402,22 @@ class Client:
         Returns:
             Error message if download fails, None otherwise.
         """
-        # Check if file already exists
         file_path = os.path.join(parent_path, f"{paper_id}.pdf")
         if os.path.exists(file_path):
             return None
 
-        # Ensure parent directory exists
         os.makedirs(parent_path, exist_ok=True)
 
         try:
-            # Construct URL
             url = f"{self.base_url}/pdf/{paper_id}"
 
-            # Download paper
-            response = self.session.get(url, stream=True, timeout=60)
-            response.raise_for_status()
+            with self._client.stream("GET", url, timeout=60.0) as response:
+                response.raise_for_status()
 
-            # Save to file
-            with open(file_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
+                with open(file_path, "wb") as f:
+                    for chunk in response.iter_bytes(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
 
             return None
 
@@ -449,7 +425,6 @@ class Client:
             return str(e)
 
 
-# Create a default client instance
 default_client = Client()
 
 

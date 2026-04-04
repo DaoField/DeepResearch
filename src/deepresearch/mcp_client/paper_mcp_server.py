@@ -16,13 +16,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
 
-import requests
+import httpx
 from lxml import etree
 from mcp.server import InitializationOptions, Server
 from mcp.server.stdio import stdio_server
 from mcp.types import ServerCapabilities, TextContent
 
-# Import local modules
 from .arxiv import Client as ArxivClient
 from .arxiv import Query, SortBy, SortOrder
 from .pubmed import PubMedService
@@ -32,6 +31,15 @@ STORAGE.mkdir(exist_ok=True)
 
 arxiv_client = ArxivClient()
 pubmed_service = PubMedService()
+
+_http_client: httpx.AsyncClient | None = None
+
+
+async def get_http_client() -> httpx.AsyncClient:
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        _http_client = httpx.AsyncClient(timeout=httpx.Timeout(30.0))
+    return _http_client
 
 
 async def arxiv_search_async(
@@ -177,12 +185,11 @@ async def pubmed_search_async(
             end_date=date_to or "2100/12/31",
             num_results=max_results,
         )
-        resp = await asyncio.get_event_loop().run_in_executor(
-            None, lambda: requests.get(url, timeout=30)
-        )
-        resp.raise_for_status()
+        client = await get_http_client()
+        response = await client.get(url)
+        response.raise_for_status()
 
-        root = etree.fromstring(resp.content)
+        root = etree.fromstring(response.content)
         id_list = root.xpath("//IdList/Id/text()")
 
         if not id_list:
@@ -192,11 +199,9 @@ async def pubmed_search_async(
             f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?"
             f"db=pubmed&id={','.join(id_list)}&retmode=xml"
         )
-        fetch_resp = await asyncio.get_event_loop().run_in_executor(
-            None, lambda: requests.get(fetch_url, timeout=30)
-        )
-        fetch_resp.raise_for_status()
-        fetch_root = etree.fromstring(fetch_resp.content)
+        fetch_response = await client.get(fetch_url)
+        fetch_response.raise_for_status()
+        fetch_root = etree.fromstring(fetch_response.content)
 
         papers = []
         for article in fetch_root.xpath("//PubmedArticle"):
@@ -255,11 +260,10 @@ async def pubmed_read_async(paper_id: str) -> TextContent:
                 "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?"
                 f"db=pubmed&id={paper_id}&retmode=xml"
             )
-            resp = await asyncio.get_event_loop().run_in_executor(
-                None, lambda: requests.get(url, timeout=30)
-            )
-            resp.raise_for_status()
-            root = etree.fromstring(resp.content)
+            client = await get_http_client()
+            response = await client.get(url)
+            response.raise_for_status()
+            root = etree.fromstring(response.content)
             article = root.xpath("//PubmedArticle")[0]
             pmid = "".join(article.xpath(".//PMID/text()"))
             title = "".join(article.xpath(".//ArticleTitle/text()"))
@@ -287,10 +291,7 @@ async def pubmed_read_async(paper_id: str) -> TextContent:
             return TextContent(type="text", text="DOI is empty")
         if not pdf_path.exists():
             try:
-                loop = asyncio.get_event_loop()
-                success = await loop.run_in_executor(
-                    None,
-                    pubmed_service.download_pubmed_paper,
+                success = await pubmed_service.download_pubmed_paper_async(
                     doi,
                     f"pubmed_{paper_id}",
                     str(STORAGE),
@@ -304,7 +305,6 @@ async def pubmed_read_async(paper_id: str) -> TextContent:
                     type="text", text=f"download PDF exception: {str(e)}"
                 )
 
-        # PDF to Markdown
         if not md_path.exists():
             try:
                 import pymupdf4llm
@@ -430,7 +430,6 @@ async def call_tool(name: str, arguments: dict):
     raise ValueError(f"Unknown tool {name}")
 
 
-# Export the synchronous functions for external use
 __all__ = ["arxiv_search", "arxiv_read", "pubmed_search", "pubmed_read"]
 
 

@@ -4,7 +4,7 @@
 import logging
 from typing import *
 
-import requests
+import httpx
 
 from deepresearch.config.search_config import search_config
 from deepresearch.tools._search import SearchClient, SearchResult
@@ -16,7 +16,6 @@ class JinaSearchClient(SearchClient):
     """Client for searching web using Jina HTTP API"""
 
     def __init__(self):
-        # Initialize configuration from search config
         self._url = "https://s.jina.ai/"
         self._headers = {
             "Authorization": f"Bearer {search_config.jina_api_key}",
@@ -24,6 +23,7 @@ class JinaSearchClient(SearchClient):
             "X-Retain-Images": "none",
             "X-Timeout": str(search_config.timeout),
         }
+        self._timeout = httpx.Timeout(search_config.timeout)
 
     def search(self, query: str, top_n: int) -> list[SearchResult]:
         """
@@ -43,19 +43,20 @@ class JinaSearchClient(SearchClient):
         try:
             params = {
                 "q": query.strip(),
-                "num": min(max(top_n, 1), 20),  # 限制范围 1-20
+                "num": min(max(top_n, 1), 20),
             }
-            response = requests.get(
-                self._url,
-                headers=self._headers,
-                params=params,
-                timeout=search_config.timeout,
-            )
-            response.raise_for_status()
-            result = response.json()
+            with httpx.Client(timeout=self._timeout) as client:
+                response = client.get(
+                    self._url,
+                    headers=self._headers,
+                    params=params,
+                )
+                response.raise_for_status()
+                result = response.json()
+
             for i, data in enumerate(result.get("data", [])):
                 url = data.get("url", "").strip()
-                if not url:  # 跳过无效URL
+                if not url:
                     continue
                 search_results.append(
                     SearchResult(
@@ -67,9 +68,11 @@ class JinaSearchClient(SearchClient):
                         id=i,
                     )
                 )
-        except requests.exceptions.Timeout:
+        except httpx.TimeoutException:
             logger.error(f"Jina search timeout for query: {query[:50]}...")
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Jina search HTTP error: {e.response.status_code}")
+        except httpx.RequestError as e:
             logger.error(f"Jina search request error: {e}")
         except Exception as e:
             logger.error(f"Error in Jina search: {e}")
@@ -77,7 +80,6 @@ class JinaSearchClient(SearchClient):
 
 
 if __name__ == "__main__":
-    # Example usage
     client = JinaSearchClient()
     query = "What is the best pc game in 2024?"
     top_n = 5

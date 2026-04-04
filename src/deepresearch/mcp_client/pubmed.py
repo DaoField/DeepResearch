@@ -6,17 +6,14 @@ import urllib.parse
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 
-import aiohttp
-import requests
+import httpx
 from bs4 import BeautifulSoup
 
-# Constants
 PUB_SEARCH_MED_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
 PUBMED_FETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 SCI_HUB_URL = "https://sci-hub.se/"
 
 
-# Data Classes
 @dataclass
 class Author:
     last_name: str
@@ -68,10 +65,12 @@ class PubMedFetchResult:
 class PubMedService:
     """
     Service for interacting with PubMed API to search and fetch articles.
+    Provides both synchronous and asynchronous methods.
     """
 
     def __init__(self):
-        pass
+        self._timeout = httpx.Timeout(30.0)
+        self._download_timeout = httpx.Timeout(60.0)
 
     def generate_pubmed_search_url(
         self, query: str, start_date: str, end_date: str, num_results: int
@@ -91,13 +90,11 @@ class PubMedService:
         keywords = query.split()
         query_parts = [urllib.parse.quote(kw) for kw in keywords]
 
-        # Format date filter
         start_date_formatted = start_date.replace(".", "/")
         end_date_formatted = end_date.replace(".", "/")
         date_filter = f"{start_date_formatted}:{end_date_formatted}[Date - Publication]"
         query_parts.append(date_filter)
 
-        # Build query parameters
         params = {
             "db": "pubmed",
             "term": "+AND+".join(query_parts),
@@ -125,18 +122,17 @@ class PubMedService:
         url = self.generate_pubmed_search_url(query, start_date, end_date, num_results)
 
         try:
-            response = requests.get(url, timeout=30)
-            response.raise_for_status()
+            with httpx.Client(timeout=self._timeout) as client:
+                response = client.get(url)
+                response.raise_for_status()
 
-            # Parse XML response
-            root = ET.fromstring(response.content)
-            id_list = []
+                root = ET.fromstring(response.content)
+                id_list = []
 
-            # Extract IDs from IdList element
-            for id_elem in root.findall(".//Id"):
-                id_list.append(id_elem.text)
+                for id_elem in root.findall(".//Id"):
+                    id_list.append(id_elem.text)
 
-            return PubMedSearchResult(ids=id_list)
+                return PubMedSearchResult(ids=id_list)
 
         except Exception as e:
             raise Exception(f"Error searching PubMed: {str(e)}")
@@ -154,87 +150,78 @@ class PubMedService:
         if not article_ids:
             return PubMedFetchResult()
 
-        # Build query parameters
         params = {"db": "pubmed", "id": ",".join(article_ids), "retmode": "xml"}
 
         try:
-            response = requests.get(PUBMED_FETCH_URL, params=params, timeout=30)
-            response.raise_for_status()
+            with httpx.Client(timeout=self._timeout) as client:
+                response = client.get(PUBMED_FETCH_URL, params=params)
+                response.raise_for_status()
 
-            # Parse XML response
-            root = ET.fromstring(response.content)
-            articles = []
+                root = ET.fromstring(response.content)
+                articles = []
 
-            # Process each PubmedArticle
-            for article_elem in root.findall(".//PubmedArticle"):
-                # Extract MedlineCitation
-                medline_citation_elem = article_elem.find(".//MedlineCitation")
-                pmid = medline_citation_elem.find(".//PMID").text
+                for article_elem in root.findall(".//PubmedArticle"):
+                    medline_citation_elem = article_elem.find(".//MedlineCitation")
+                    pmid = medline_citation_elem.find(".//PMID").text
 
-                # Extract Article info
-                article_elem_in = medline_citation_elem.find(".//Article")
-                title = (
-                    article_elem_in.find(".//ArticleTitle").text
-                    if article_elem_in.find(".//ArticleTitle") is not None
-                    else ""
-                )
-
-                # Extract abstract
-                abstract_elem = article_elem_in.find(".//AbstractText")
-                abstract = abstract_elem.text if abstract_elem is not None else None
-
-                # Extract authors
-                authors = []
-                for author_elem in article_elem_in.findall(".//Author"):
-                    last_name_elem = author_elem.find(".//LastName")
-                    fore_name_elem = author_elem.find(".//ForeName")
-
-                    if last_name_elem is not None and fore_name_elem is not None:
-                        authors.append(
-                            Author(
-                                last_name=last_name_elem.text,
-                                fore_name=fore_name_elem.text,
-                            )
-                        )
-
-                # Extract publication date
-                year_elem = article_elem_in.find(".//PubDate/Year")
-                month_elem = article_elem_in.find(".//PubDate/Month")
-
-                year = year_elem.text if year_elem is not None else None
-                month = month_elem.text if month_elem is not None else None
-
-                article = Article(
-                    title=title,
-                    abstract=abstract,
-                    authors=authors,
-                    year=year,
-                    month=month,
-                )
-
-                medline_citation = MedlineCitation(pmid=pmid, article=article)
-
-                # Extract PubmedData
-                pubmed_data_elem = article_elem.find(".//PubmedData")
-                article_ids_list = []
-
-                for article_id_elem in pubmed_data_elem.findall(".//ArticleId"):
-                    article_id = ArticleId(
-                        id=article_id_elem.text,
-                        id_type=article_id_elem.get("IdType", ""),
+                    article_elem_in = medline_citation_elem.find(".//Article")
+                    title = (
+                        article_elem_in.find(".//ArticleTitle").text
+                        if article_elem_in.find(".//ArticleTitle") is not None
+                        else ""
                     )
-                    article_ids_list.append(article_id)
 
-                pubmed_data = PubmedData(article_ids=article_ids_list)
+                    abstract_elem = article_elem_in.find(".//AbstractText")
+                    abstract = abstract_elem.text if abstract_elem is not None else None
 
-                # Create PubMedArticle
-                pubmed_article = PubMedArticle(
-                    medline_citation=medline_citation, pubmed_data=pubmed_data
-                )
+                    authors = []
+                    for author_elem in article_elem_in.findall(".//Author"):
+                        last_name_elem = author_elem.find(".//LastName")
+                        fore_name_elem = author_elem.find(".//ForeName")
 
-                articles.append(pubmed_article)
+                        if last_name_elem is not None and fore_name_elem is not None:
+                            authors.append(
+                                Author(
+                                    last_name=last_name_elem.text,
+                                    fore_name=fore_name_elem.text,
+                                )
+                            )
 
-            return PubMedFetchResult(articles=articles)
+                    year_elem = article_elem_in.find(".//PubDate/Year")
+                    month_elem = article_elem_in.find(".//PubDate/Month")
+
+                    year = year_elem.text if year_elem is not None else None
+                    month = month_elem.text if month_elem is not None else None
+
+                    article = Article(
+                        title=title,
+                        abstract=abstract,
+                        authors=authors,
+                        year=year,
+                        month=month,
+                    )
+
+                    medline_citation = MedlineCitation(pmid=pmid, article=article)
+
+                    pubmed_data_elem = article_elem.find(".//PubmedData")
+                    article_ids_list = []
+
+                    for article_id_elem in pubmed_data_elem.findall(".//ArticleId"):
+                        article_id = ArticleId(
+                            id=article_id_elem.text,
+                            id_type=article_id_elem.get("IdType", ""),
+                        )
+                        article_ids_list.append(article_id)
+
+                    pubmed_data = PubmedData(article_ids=article_ids_list)
+
+                    pubmed_article = PubMedArticle(
+                        medline_citation=medline_citation, pubmed_data=pubmed_data
+                    )
+
+                    articles.append(pubmed_article)
+
+                return PubMedFetchResult(articles=articles)
 
         except Exception as e:
             raise Exception(f"Error fetching PubMed articles: {str(e)}")
@@ -251,48 +238,41 @@ class PubMedService:
         Returns:
             True if download successful, False otherwise
         """
-        # Check if file already exists
         save_path = os.path.join(parent_path, f"{paper_id}.pdf")
         if os.path.exists(save_path):
             return True
 
         try:
-            # Ensure parent directory exists
             os.makedirs(parent_path, exist_ok=True)
 
-            # Try to get the paper from Sci-Hub
             page_url = f"{SCI_HUB_URL}{doi}"
-            response = requests.get(page_url, timeout=30)
-            response.raise_for_status()
 
-            # Parse HTML to find PDF link
-            soup = BeautifulSoup(response.text, "html.parser")
-            download_url = ""
+            with httpx.Client(timeout=self._download_timeout, follow_redirects=True) as client:
+                response = client.get(page_url)
+                response.raise_for_status()
 
-            # Try to find PDF in iframe
-            iframe = soup.find("iframe")
-            if iframe and "src" in iframe.attrs and ".pdf" in iframe["src"]:
-                download_url = iframe["src"]
+                soup = BeautifulSoup(response.text, "html.parser")
+                download_url = ""
 
-            # If not found in iframe, try embed tag
-            if not download_url:
-                embed = soup.find("embed")
-                if embed and "src" in embed.attrs:
-                    download_url = embed["src"]
+                iframe = soup.find("iframe")
+                if iframe and "src" in iframe.attrs and ".pdf" in iframe["src"]:
+                    download_url = iframe["src"]
 
-            # Fix URL if needed
-            if download_url.startswith("//"):
-                download_url = f"https:{download_url}"
-            elif not download_url.startswith("http"):
-                raise Exception("Could not find PDF download URL")
+                if not download_url:
+                    embed = soup.find("embed")
+                    if embed and "src" in embed.attrs:
+                        download_url = embed["src"]
 
-            # Download the PDF
-            pdf_response = requests.get(download_url, timeout=60)
-            pdf_response.raise_for_status()
+                if download_url.startswith("//"):
+                    download_url = f"https:{download_url}"
+                elif not download_url.startswith("http"):
+                    raise Exception("Could not find PDF download URL")
 
-            # Save the PDF
-            with open(save_path, "wb") as f:
-                f.write(pdf_response.content)
+                pdf_response = client.get(download_url)
+                pdf_response.raise_for_status()
+
+                with open(save_path, "wb") as f:
+                    f.write(pdf_response.content)
 
             return True
 
@@ -305,62 +285,180 @@ class PubMedService:
     ) -> bool:
         """
         Async version of download_pubmed_paper.
+
+        Args:
+            doi: DOI of the paper
+            paper_id: Paper ID to use for saving the file
+            parent_path: Directory to save the downloaded PDF
+
+        Returns:
+            True if download successful, False otherwise
         """
-        # Check if file already exists
         save_path = os.path.join(parent_path, f"{paper_id}.pdf")
         if os.path.exists(save_path):
             return True
 
         try:
-            # Ensure parent directory exists
             os.makedirs(parent_path, exist_ok=True)
 
-            # Try to get the paper from Sci-Hub
             page_url = f"{SCI_HUB_URL}{doi}"
 
-            async with aiohttp.ClientSession() as session:
-                async with session.get(page_url, timeout=30) as response:
-                    if response.status != 200:
-                        raise Exception(f"HTTP error, status code: {response.status}")
+            async with httpx.AsyncClient(
+                timeout=self._download_timeout, follow_redirects=True
+            ) as client:
+                response = await client.get(page_url)
+                response.raise_for_status()
 
-                    # Parse HTML to find PDF link
-                    text = await response.text()
-                    soup = BeautifulSoup(text, "html.parser")
-                    download_url = ""
+                soup = BeautifulSoup(response.text, "html.parser")
+                download_url = ""
 
-                    # Try to find PDF in iframe
-                    iframe = soup.find("iframe")
-                    if iframe and "src" in iframe.attrs and ".pdf" in iframe["src"]:
-                        download_url = iframe["src"]
+                iframe = soup.find("iframe")
+                if iframe and "src" in iframe.attrs and ".pdf" in iframe["src"]:
+                    download_url = iframe["src"]
 
-                    # If not found in iframe, try embed tag
-                    if not download_url:
-                        embed = soup.find("embed")
-                        if embed and "src" in embed.attrs:
-                            download_url = embed["src"]
+                if not download_url:
+                    embed = soup.find("embed")
+                    if embed and "src" in embed.attrs:
+                        download_url = embed["src"]
 
-                    # Fix URL if needed
-                    if download_url.startswith("//"):
-                        download_url = f"https:{download_url}"
-                    elif not download_url.startswith("http"):
-                        raise Exception("Could not find PDF download URL")
+                if download_url.startswith("//"):
+                    download_url = f"https:{download_url}"
+                elif not download_url.startswith("http"):
+                    raise Exception("Could not find PDF download URL")
 
-                    # Download the PDF
-                    async with session.get(download_url, timeout=60) as pdf_response:
-                        if pdf_response.status != 200:
-                            raise Exception(
-                                f"HTTP error downloading PDF, status code: {pdf_response.status}"
-                            )
+                pdf_response = await client.get(download_url)
+                pdf_response.raise_for_status()
 
-                        # Save the PDF
-                        with open(save_path, "wb") as f:
-                            f.write(await pdf_response.read())
+                with open(save_path, "wb") as f:
+                    f.write(pdf_response.content)
 
             return True
 
         except Exception as e:
             print(f"Error downloading paper {doi}: {str(e)}")
             return False
+
+    async def search_pubmed_async(
+        self, query: str, start_date: str, end_date: str, num_results: int
+    ) -> PubMedSearchResult:
+        """
+        Async version of search_pubmed.
+
+        Args:
+            query: Search query string
+            start_date: Start date in format "YYYY.MM.DD"
+            end_date: End date in format "YYYY.MM.DD"
+            num_results: Maximum number of results to return
+
+        Returns:
+            PubMedSearchResult object containing list of article IDs
+        """
+        url = self.generate_pubmed_search_url(query, start_date, end_date, num_results)
+
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout) as client:
+                response = await client.get(url)
+                response.raise_for_status()
+
+                root = ET.fromstring(response.content)
+                id_list = []
+
+                for id_elem in root.findall(".//Id"):
+                    id_list.append(id_elem.text)
+
+                return PubMedSearchResult(ids=id_list)
+
+        except Exception as e:
+            raise Exception(f"Error searching PubMed: {str(e)}")
+
+    async def fetch_articles_async(self, article_ids: list[str]) -> PubMedFetchResult:
+        """
+        Async version of fetch_articles.
+
+        Args:
+            article_ids: List of PubMed article IDs
+
+        Returns:
+            PubMedFetchResult object containing list of articles
+        """
+        if not article_ids:
+            return PubMedFetchResult()
+
+        params = {"db": "pubmed", "id": ",".join(article_ids), "retmode": "xml"}
+
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout) as client:
+                response = await client.get(PUBMED_FETCH_URL, params=params)
+                response.raise_for_status()
+
+                root = ET.fromstring(response.content)
+                articles = []
+
+                for article_elem in root.findall(".//PubmedArticle"):
+                    medline_citation_elem = article_elem.find(".//MedlineCitation")
+                    pmid = medline_citation_elem.find(".//PMID").text
+
+                    article_elem_in = medline_citation_elem.find(".//Article")
+                    title = (
+                        article_elem_in.find(".//ArticleTitle").text
+                        if article_elem_in.find(".//ArticleTitle") is not None
+                        else ""
+                    )
+
+                    abstract_elem = article_elem_in.find(".//AbstractText")
+                    abstract = abstract_elem.text if abstract_elem is not None else None
+
+                    authors = []
+                    for author_elem in article_elem_in.findall(".//Author"):
+                        last_name_elem = author_elem.find(".//LastName")
+                        fore_name_elem = author_elem.find(".//ForeName")
+
+                        if last_name_elem is not None and fore_name_elem is not None:
+                            authors.append(
+                                Author(
+                                    last_name=last_name_elem.text,
+                                    fore_name=fore_name_elem.text,
+                                )
+                            )
+
+                    year_elem = article_elem_in.find(".//PubDate/Year")
+                    month_elem = article_elem_in.find(".//PubDate/Month")
+
+                    year = year_elem.text if year_elem is not None else None
+                    month = month_elem.text if month_elem is not None else None
+
+                    article = Article(
+                        title=title,
+                        abstract=abstract,
+                        authors=authors,
+                        year=year,
+                        month=month,
+                    )
+
+                    medline_citation = MedlineCitation(pmid=pmid, article=article)
+
+                    pubmed_data_elem = article_elem.find(".//PubmedData")
+                    article_ids_list = []
+
+                    for article_id_elem in pubmed_data_elem.findall(".//ArticleId"):
+                        article_id = ArticleId(
+                            id=article_id_elem.text,
+                            id_type=article_id_elem.get("IdType", ""),
+                        )
+                        article_ids_list.append(article_id)
+
+                    pubmed_data = PubmedData(article_ids=article_ids_list)
+
+                    pubmed_article = PubMedArticle(
+                        medline_citation=medline_citation, pubmed_data=pubmed_data
+                    )
+
+                    articles.append(pubmed_article)
+
+                return PubMedFetchResult(articles=articles)
+
+        except Exception as e:
+            raise Exception(f"Error fetching PubMed articles: {str(e)}")
 
 
 def path_exists(path: str) -> bool:
@@ -376,5 +474,4 @@ def path_exists(path: str) -> bool:
     return os.path.exists(path)
 
 
-# Global instance
 pub_med = PubMedService()
