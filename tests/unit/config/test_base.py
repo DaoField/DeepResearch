@@ -34,7 +34,7 @@ from deepresearch.config import (
 )
 
 
-class TestConfigValidators:
+class MockConfigValidators:
     """测试配置验证器。"""
 
     def test_range_validator_valid(self):
@@ -98,7 +98,7 @@ class TestConfigValidators:
 
 
 @dataclass
-class TestConfig(BaseConfig):
+class MockConfig(BaseConfig):
     """测试配置类。"""
     name: str = "default"
     timeout: int = 30
@@ -124,7 +124,7 @@ class TestBaseConfig:
 
     def test_default_values(self):
         """测试默认值。"""
-        config = TestConfig()
+        config = MockConfig()
         assert config.name == "default"
         assert config.timeout == 30
         assert config.retries == 3
@@ -132,20 +132,20 @@ class TestBaseConfig:
 
     def test_from_dict(self):
         """测试从字典创建。"""
-        config = TestConfig.from_dict({"name": "test", "timeout": 60})
+        config = MockConfig.from_dict({"name": "test", "timeout": 60})
         assert config.name == "test"
         assert config.timeout == 60
         assert config.retries == 3  # 使用默认值
 
     def test_from_dict_ignores_invalid_fields(self):
         """测试从字典创建时忽略无效字段。"""
-        config = TestConfig.from_dict({"name": "test", "invalid_field": "value"})
+        config = MockConfig.from_dict({"name": "test", "invalid_field": "value"})
         assert config.name == "test"
         assert not hasattr(config, "invalid_field")
 
     def test_to_dict(self):
         """测试转换为字典。"""
-        config = TestConfig(name="test", timeout=60)
+        config = MockConfig(name="test", timeout=60)
         config_dict = config.to_dict()
         assert config_dict == {"name": "test", "timeout": 60, "retries": 3, "enabled": True}
 
@@ -163,8 +163,8 @@ class TestBaseConfig:
 
     def test_merge(self):
         """测试配置合并。"""
-        config1 = TestConfig(name="base", timeout=30)
-        config2 = TestConfig(name="override", timeout=60)
+        config1 = MockConfig(name="base", timeout=30)
+        config2 = MockConfig(name="override", timeout=60)
         merged = config1.merge(config2)
 
         assert merged.name == "override"
@@ -173,8 +173,8 @@ class TestBaseConfig:
 
     def test_merge_preserves_original(self):
         """测试合并不修改原始配置。"""
-        config1 = TestConfig(name="base")
-        config2 = TestConfig(name="override")
+        config1 = MockConfig(name="base")
+        config2 = MockConfig(name="override")
         merged = config1.merge(config2)
 
         assert config1.name == "base"
@@ -183,20 +183,20 @@ class TestBaseConfig:
 
     def test_get(self):
         """测试 get 方法。"""
-        config = TestConfig(name="test")
+        config = MockConfig(name="test")
         assert config.get("name") == "test"
         assert config.get("timeout") == 30
         assert config.get("nonexistent", "default") == "default"
 
     def test_set(self):
         """测试 set 方法。"""
-        config = TestConfig()
+        config = MockConfig()
         config.set("name", "new_name")
         assert config.name == "new_name"
 
     def test_set_private_field_ignored(self):
         """测试 set 方法忽略私有字段。"""
-        config = TestConfig()
+        config = MockConfig()
         config.set("_private", "value")  # 不应抛出异常
 
     def test_validation_error(self):
@@ -213,7 +213,7 @@ class TestConfigFromEnv:
         monkeypatch.setenv("DEEPRESEARCH_NAME", "env_name")
         monkeypatch.setenv("DEEPRESEARCH_TIMEOUT", "120")
 
-        config = TestConfig.from_env()
+        config = MockConfig.from_env()
         assert config.name == "env_name"
         assert config.timeout == 120
 
@@ -221,7 +221,7 @@ class TestConfigFromEnv:
         """测试布尔值环境变量。"""
         monkeypatch.setenv("DEEPRESEARCH_ENABLED", "false")
 
-        config = TestConfig.from_env()
+        config = MockConfig.from_env()
         assert config.enabled is False
 
     def test_from_env_boolean_variations(self, monkeypatch):
@@ -229,13 +229,13 @@ class TestConfigFromEnv:
         # 测试各种 true 值
         for val in ["true", "1", "yes"]:
             monkeypatch.setenv("DEEPRESEARCH_ENABLED", val)
-            config = TestConfig.from_env()
+            config = MockConfig.from_env()
             assert config.enabled is True, f"Failed for value: {val}"
 
         # 测试各种 false 值
         for val in ["false", "0", "no"]:
             monkeypatch.setenv("DEEPRESEARCH_ENABLED", val)
-            config = TestConfig.from_env()
+            config = MockConfig.from_env()
             assert config.enabled is False, f"Failed for value: {val}"
 
     def test_from_env_no_matching_vars(self, monkeypatch):
@@ -245,7 +245,7 @@ class TestConfigFromEnv:
             if key.startswith("DEEPRESEARCH_"):
                 monkeypatch.delenv(key, raising=False)
 
-        config = TestConfig.from_env()
+        config = MockConfig.from_env()
         assert config.name == "default"
         assert config.timeout == 30
 
@@ -263,7 +263,7 @@ retries = 5
 enabled = false
 """)
 
-        config = TestConfig.from_file(config_file)
+        config = MockConfig.from_file(config_file)
         assert config.name == "file_name"
         assert config.timeout == 90
         assert config.retries == 5
@@ -272,7 +272,7 @@ enabled = false
     def test_from_file_not_found(self):
         """测试文件不存在。"""
         with pytest.raises(ConfigError):
-            TestConfig.from_file("/nonexistent/path/config.toml")
+            MockConfig.from_file("/nonexistent/path/config.toml")
 
     def test_from_file_invalid_toml(self, tmp_path):
         """测试无效 TOML 文件。"""
@@ -280,7 +280,7 @@ enabled = false
         config_file.write_text("invalid toml content {{{")
 
         with pytest.raises(ConfigError):
-            TestConfig.from_file(config_file)
+            MockConfig.from_file(config_file)
 
 
 class TestConfigManager:
@@ -323,7 +323,7 @@ class TestConfigManager:
     def test_register_and_load(self):
         """测试注册和加载配置。"""
         def loader():
-            return TestConfig(name="loaded")
+            return MockConfig(name="loaded")
 
         config_manager.register_loader("test", loader)
         config = config_manager.load("test")
@@ -337,7 +337,7 @@ class TestConfigManager:
         def loader():
             nonlocal call_count
             call_count += 1
-            return TestConfig(name=f"call_{call_count}")
+            return MockConfig(name=f"call_{call_count}")
 
         config_manager.register_loader("cached", loader)
 
@@ -355,7 +355,7 @@ class TestConfigManager:
         def loader():
             nonlocal call_count
             call_count += 1
-            return TestConfig(name=f"call_{call_count}")
+            return MockConfig(name=f"call_{call_count}")
 
         config_manager.register_loader("reloadable", loader)
 
@@ -369,8 +369,8 @@ class TestConfigManager:
 
     def test_reload_all(self):
         """测试重新加载所有配置。"""
-        config_manager._configs["test1"] = TestConfig(name="test1")
-        config_manager._configs["test2"] = TestConfig(name="test2")
+        config_manager._configs["test1"] = MockConfig(name="test1")
+        config_manager._configs["test2"] = MockConfig(name="test2")
 
         config_manager.reload()
 
@@ -391,7 +391,7 @@ class TestLoadConfigFunction:
 
     def test_load_config_defaults(self):
         """测试加载默认配置。"""
-        config = load_config(TestConfig, use_env=False, use_file=False)
+        config = load_config(MockConfig, use_env=False, use_file=False)
         assert config.name == "default"
         assert config.timeout == 30
 
@@ -399,7 +399,7 @@ class TestLoadConfigFunction:
         """测试从环境变量加载。"""
         monkeypatch.setenv("DEEPRESEARCH_TIMEOUT", "200")
 
-        config = load_config(TestConfig, use_env=True, use_file=False)
+        config = load_config(MockConfig, use_env=True, use_file=False)
         assert config.timeout == 200
 
     def test_load_config_with_file(self, tmp_path, monkeypatch):
@@ -410,7 +410,7 @@ class TestLoadConfigFunction:
         config_file = tmp_path / "test_config.toml"
         config_file.write_text("name = \"from_file\"\ntimeout = 150")
 
-        config = load_config(TestConfig, filename="test_config.toml", use_env=False, use_file=True)
+        config = load_config(MockConfig, filename="test_config.toml", use_env=False, use_file=True)
         assert config.name == "from_file"
         assert config.timeout == 150
 
@@ -423,7 +423,7 @@ class TestLoadConfigFunction:
 
         monkeypatch.setenv("DEEPRESEARCH_TIMEOUT", "250")
 
-        config = load_config(TestConfig, filename="test_config.toml", use_env=True, use_file=True)
+        config = load_config(MockConfig, filename="test_config.toml", use_env=True, use_file=True)
         assert config.timeout == 250  # 环境变量优先级更高
 
     def test_load_config_custom_prefix(self, monkeypatch):
@@ -431,7 +431,7 @@ class TestLoadConfigFunction:
         monkeypatch.setenv("CUSTOM_PREFIX_TIMEOUT", "300")
 
         config = load_config(
-            TestConfig,
+            MockConfig,
             use_env=True,
             use_file=False,
             env_prefix="CUSTOM_PREFIX_"

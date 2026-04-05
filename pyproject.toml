@@ -65,6 +65,10 @@ extend-exclude = [
     "src/deepresearch/tools/md2html.py",
 ]
 
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N"]
 ignore = ["E501", "E101", "W291", "W293", "W605", "F401", "F403", "F405", "F841"]
