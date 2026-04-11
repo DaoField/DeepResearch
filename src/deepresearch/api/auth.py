@@ -6,7 +6,7 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import APIKeyHeader
 
 from deepresearch.logging_config import get_logger
@@ -61,9 +61,20 @@ api_key_auth = APIKeyAuth()
 
 
 async def get_api_key(
+    request: Request,
     api_key: Optional[str] = Depends(api_key_header),
 ) -> str:
-    """FastAPI 依赖：获取并验证 API 密钥。"""
+    """FastAPI 依赖：获取并验证 API 密钥。
+    
+    支持从两个位置获取：
+    1. 请求头 X-API-Key
+    2. 查询参数 api_key (用于 SSE EventSource 连接)
+    """
+    # 先尝试从请求头获取
+    if not api_key:
+        # 尝试从查询参数获取（用于 SSE）
+        api_key = request.query_params.get("api_key")
+    
     if not api_key_auth.validate_key(api_key):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
