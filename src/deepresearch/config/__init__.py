@@ -12,6 +12,7 @@ DeepResearch 配置模块。
 """
 
 from .base import (
+    WATCHDOG_AVAILABLE,
     # 配置基类
     BaseConfig,
     ChoiceValidator,
@@ -30,7 +31,6 @@ from .base import (
     RangeValidator,
     TypeValidator,
     ValidationError,
-    WATCHDOG_AVAILABLE,
     add_sensitive_key,
     clear_config_cache,
     config_manager,

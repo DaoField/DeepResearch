@@ -15,19 +15,17 @@ from sse_starlette.sse import EventSourceResponse
 from deepresearch import __version__ as deepresearch_version
 from deepresearch.agent.agent import build_agent
 from deepresearch.agent.message import ReportState
-from deepresearch.logging_config import get_logger
-
 from deepresearch.api.auth import get_api_key
 from deepresearch.api.models import (
     CreateResearchRequest,
     CreateResearchResponse,
     HealthResponse,
     ResearchStatusResponse,
-    VersionInfo,
     TaskStatus,
+    VersionInfo,
 )
 from deepresearch.api.task_manager import ResearchTask, task_manager
-
+from deepresearch.logging_config import get_logger
 
 logger = get_logger(__name__)
 

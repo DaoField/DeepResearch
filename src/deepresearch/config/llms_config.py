@@ -4,7 +4,7 @@
 from dataclasses import dataclass
 from typing import Literal, TypeVar
 
-from .base import clear_config_cache, load_toml_config, redact_config
+from .base import clear_config_cache, config_manager, load_toml_config, redact_config
 
 T = TypeVar("T", bound="BaseLLMConfig")
 
@@ -120,5 +120,4 @@ def get_report_llm() -> BaseLLMConfig:
 
 
 # 在模块加载完成后注册重新加载回调
-from .base import config_manager
 config_manager.register_reload_callback(_on_config_reload)

@@ -24,7 +24,6 @@ _REF_PATTERN = re.compile(r"(\[\^[^\[\]]+\] *)+")
 
 
 def generate_node(state: ReportState):
-
     outline = state.get("outline")
     final_report = ""
     colored_print(f"{'#' * outline.level} {outline.title}\n", color="green", end="")

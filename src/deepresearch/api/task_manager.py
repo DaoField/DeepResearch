@@ -6,13 +6,12 @@ from __future__ import annotations
 import asyncio
 import uuid
 from asyncio import Task
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, AsyncGenerator, Callable, Optional
-from dataclasses import dataclass, field
 
+from deepresearch.api.models import ProgressEvent, ProgressStep, TaskStatus
 from deepresearch.logging_config import get_logger
-
-from deepresearch.api.models import ProgressEvent, TaskStatus, ProgressStep
 
 logger = get_logger(__name__)
 
@@ -44,7 +43,9 @@ class ResearchTask:
 
     def add_step(self, name: str, description: str, status: TaskStatus) -> None:
         """添加一个步骤。"""
-        self.steps.append(ProgressStep(name=name, description=description, status=status))
+        self.steps.append(
+            ProgressStep(name=name, description=description, status=status)
+        )
 
     def update_progress(
         self,
@@ -91,15 +92,27 @@ class ResearchTask:
 
         while True:
             try:
-                if self.status in (TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED):
+                if self.status in (
+                    TaskStatus.COMPLETED,
+                    TaskStatus.FAILED,
+                    TaskStatus.CANCELLED,
+                ):
                     final_event = ProgressEvent(
-                        event="complete" if self.status == TaskStatus.COMPLETED else "error" if self.status == TaskStatus.FAILED else "cancelled",
+                        event="complete"
+                        if self.status == TaskStatus.COMPLETED
+                        else "error"
+                        if self.status == TaskStatus.FAILED
+                        else "cancelled",
                         task_id=self.task_id,
                         status=self.status,
                         progress=self.progress,
                         current_step=self.current_step,
-                        message=self.error if self.status == TaskStatus.FAILED else f"Task {self.status}",
-                        data=self.result if self.status == TaskStatus.COMPLETED else None,
+                        message=self.error
+                        if self.status == TaskStatus.FAILED
+                        else f"Task {self.status}",
+                        data=self.result
+                        if self.status == TaskStatus.COMPLETED
+                        else None,
                     )
                     yield final_event
                     break
@@ -111,7 +124,11 @@ class ResearchTask:
                 yield event
                 self._queue.task_done()
             except asyncio.TimeoutError:
-                if self.status not in (TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED):
+                if self.status not in (
+                    TaskStatus.COMPLETED,
+                    TaskStatus.FAILED,
+                    TaskStatus.CANCELLED,
+                ):
                     yield ProgressEvent(
                         event="ping",
                         task_id=self.task_id,
@@ -170,7 +187,9 @@ class TaskManager:
         self._max_concurrent_tasks = max_concurrent_tasks
         self._semaphore = asyncio.Semaphore(max_concurrent_tasks)
         self._start_time = datetime.utcnow()
-        logger.info(f"TaskManager initialized with max {max_concurrent_tasks} concurrent tasks")
+        logger.info(
+            f"TaskManager initialized with max {max_concurrent_tasks} concurrent tasks"
+        )
 
     def create_task(
         self,
@@ -213,7 +232,11 @@ class TaskManager:
         to_remove: list[str] = []
 
         for task_id, task in self._tasks.items():
-            if task.status in (TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED):
+            if task.status in (
+                TaskStatus.COMPLETED,
+                TaskStatus.FAILED,
+                TaskStatus.CANCELLED,
+            ):
                 if task.completed_at:
                     age = (now - task.completed_at).total_seconds()
                     if age > max_age_seconds:
@@ -243,7 +266,11 @@ class TaskManager:
 
             try:
                 task.start()
-                result = await executor(task) if asyncio.iscoroutinefunction(executor) else executor(task)
+                result = (
+                    await executor(task)
+                    if asyncio.iscoroutinefunction(executor)
+                    else executor(task)
+                )
                 if not task.is_cancelled():
                     task.complete(result)
             except Exception as e:

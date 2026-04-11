@@ -24,7 +24,9 @@ class CreateResearchRequest(BaseModel):
     """创建研究请求模型。"""
 
     topic: str = Field(..., description="研究主题", min_length=1)
-    domain: str | None = Field(default=None, description="研究领域，如 'technology'、'medicine' 等")
+    domain: str | None = Field(
+        default=None, description="研究领域，如 'technology'、'medicine' 等"
+    )
     details: str | None = Field(default=None, description="额外的研究细节要求")
 
 
@@ -33,7 +35,9 @@ class CreateResearchResponse(BaseModel):
 
     task_id: str = Field(..., description="任务ID")
     status: TaskStatus = Field(..., description="任务状态")
-    message: str = Field(default="Research task created successfully", description="响应消息")
+    message: str = Field(
+        default="Research task created successfully", description="响应消息"
+    )
 
 
 class ProgressStep(BaseModel):
@@ -56,7 +60,9 @@ class ResearchStatusResponse(BaseModel):
     progress: float = Field(default=0.0, description="进度百分比 (0-1)", ge=0, le=1)
     current_step: str | None = Field(default=None, description="当前步骤")
     steps: list[ProgressStep] = Field(default_factory=list, description="步骤列表")
-    result: dict[str, Any] | None = Field(default=None, description="研究结果（完成时返回）")
+    result: dict[str, Any] | None = Field(
+        default=None, description="研究结果（完成时返回）"
+    )
     error: str | None = Field(default=None, description="错误信息（失败时返回）")
 
 
@@ -87,12 +93,16 @@ class VersionInfo(BaseModel):
     version: str = Field(..., description="API 版本")
     deepresearch_version: str = Field(..., description="DeepResearch 版本")
     name: str = Field(default="DeepResearch API", description="API 名称")
-    description: str = Field(default="Deep Research API Service", description="API 描述")
+    description: str = Field(
+        default="Deep Research API Service", description="API 描述"
+    )
 
 
 class HealthResponse(BaseModel):
     """健康检查响应。"""
 
     status: str = Field(..., description="服务状态")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="当前时间戳")
+    timestamp: datetime = Field(
+        default_factory=datetime.utcnow, description="当前时间戳"
+    )
     uptime_seconds: float = Field(..., description="服务运行时间（秒）")

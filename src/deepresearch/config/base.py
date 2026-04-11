@@ -10,11 +10,12 @@ from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 from threading import Thread
-from typing import Any, ClassVar, TypeVar, Optional
+from typing import Any, ClassVar, Optional, TypeVar
 
 try:
-    from watchdog.observers import Observer
     from watchdog.events import FileSystemEventHandler
+    from watchdog.observers import Observer
+
     WATCHDOG_AVAILABLE = True
 except ImportError:
     WATCHDOG_AVAILABLE = False
@@ -391,7 +392,9 @@ class ConfigManager:
     _custom_config_dir: Path | None = field(default=None, repr=False)
     _observer: Optional[Observer] = field(default=None, repr=False)
     _watching: bool = field(default=False, repr=False)
-    _reload_callbacks: list[Callable[[], None]] = field(default_factory=list, repr=False)
+    _reload_callbacks: list[Callable[[], None]] = field(
+        default_factory=list, repr=False
+    )
 
     def set_config_dir(self, config_dir: Path | str) -> None:
         """设置自定义配置目录。
@@ -524,7 +527,7 @@ class ConfigManager:
                 if event.is_directory:
                     return
 
-                if not event.src_path.endswith('.toml'):
+                if not event.src_path.endswith(".toml"):
                     return
 
                 if self._debounce_timer and self._debounce_timer.is_alive():
