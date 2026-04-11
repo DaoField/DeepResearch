@@ -9,7 +9,17 @@ from dataclasses import dataclass, field, fields, replace
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, ClassVar, TypeVar
+from threading import Thread
+from typing import Any, ClassVar, TypeVar, Optional
+
+try:
+    from watchdog.observers import Observer
+    from watchdog.events import FileSystemEventHandler
+    WATCHDOG_AVAILABLE = True
+except ImportError:
+    WATCHDOG_AVAILABLE = False
+    Observer = None
+    FileSystemEventHandler = object
 
 
 class ConfigError(Exception):
@@ -379,6 +389,9 @@ class ConfigManager:
         default_factory=dict, repr=False
     )
     _custom_config_dir: Path | None = field(default=None, repr=False)
+    _observer: Optional[Observer] = field(default=None, repr=False)
+    _watching: bool = field(default=False, repr=False)
+    _reload_callbacks: list[Callable[[], None]] = field(default_factory=list, repr=False)
 
     def set_config_dir(self, config_dir: Path | str) -> None:
         """设置自定义配置目录。
@@ -404,7 +417,12 @@ class ConfigManager:
         if env_dir:
             return Path(env_dir).expanduser().resolve()
 
-        # 默认使用项目相对路径
+        # 然后检测项目根目录/.config 用户配置目录
+        root_user_config = Path(__file__).parents[3] / ".config"
+        if root_user_config.exists() and root_user_config.is_dir():
+            return root_user_config.resolve()
+
+        # 最后使用默认项目相对路径
         return Path(__file__).parents[3] / "config"
 
     def register_loader(self, name: str, loader: Callable[[], BaseConfig]) -> None:
@@ -434,6 +452,24 @@ class ConfigManager:
             self._configs[name] = self._loaders[name]()
         return self._configs[name]
 
+    def register_reload_callback(self, callback: Callable[[], None]) -> None:
+        """注册配置重新加载回调。
+
+        Args:
+            callback: 配置重新加载时要调用的回调函数
+        """
+        if callback not in self._reload_callbacks:
+            self._reload_callbacks.append(callback)
+
+    def unregister_reload_callback(self, callback: Callable[[], None]) -> None:
+        """取消注册配置重新加载回调。
+
+        Args:
+            callback: 要取消注册的回调函数
+        """
+        if callback in self._reload_callbacks:
+            self._reload_callbacks.remove(callback)
+
     def reload(self, name: str | None = None) -> None:
         """重新加载配置。
 
@@ -447,9 +483,80 @@ class ConfigManager:
         elif name in self._configs:
             del self._configs[name]
 
+        for callback in self._reload_callbacks:
+            try:
+                callback()
+            except Exception:
+                pass
+
     def get(self, name: str) -> BaseConfig:
         """获取配置（同 load）。"""
         return self.load(name)
+
+    def start_watching(self) -> None:
+        """启动配置文件变更监听。
+
+        如果 watchdog 库不可用，则静默跳过。
+        """
+        if not WATCHDOG_AVAILABLE:
+            return
+
+        if self._watching:
+            return
+
+        config_dir = self.get_config_dir()
+        if not config_dir.exists():
+            return
+
+        class ConfigChangeHandler(FileSystemEventHandler):
+            """处理配置文件变更事件。"""
+
+            def __init__(self, manager: ConfigManager):
+                self.manager = manager
+                self._debounce_timer: Optional[Thread] = None
+
+            def _on_change(self) -> None:
+                """延迟处理变更，避免频繁触发。"""
+                self.manager.reload()
+
+            def on_any_event(self, event):
+                """处理任何文件系统事件。"""
+                if event.is_directory:
+                    return
+
+                if not event.src_path.endswith('.toml'):
+                    return
+
+                if self._debounce_timer and self._debounce_timer.is_alive():
+                    self._debounce_timer.join(timeout=1.0)
+
+                self._debounce_timer = Thread(target=self._on_change, daemon=True)
+                self._debounce_timer.start()
+
+        self._observer = Observer()
+        handler = ConfigChangeHandler(self)
+        self._observer.schedule(handler, str(config_dir), recursive=False)
+        self._observer.start()
+        self._watching = True
+
+    def stop_watching(self) -> None:
+        """停止配置文件变更监听。"""
+        if self._observer and self._watching:
+            self._observer.stop()
+            self._observer.join()
+            self._watching = False
+
+    def is_watching(self) -> bool:
+        """检查是否正在监听配置变更。
+
+        Returns:
+            是否正在监听
+        """
+        return self._watching
+
+    def __del__(self):
+        """析构时停止观察者。"""
+        self.stop_watching()
 
 
 # 全局配置管理器实例
@@ -471,9 +578,48 @@ def _load_toml_table_from_path(resolved_path: str) -> dict[str, Any]:
     return data
 
 
+__all__ = [
+    "ConfigError",
+    "ValidationError",
+    "ConfigSource",
+    "ConfigValue",
+    "ConfigValidator",
+    "ConfigField",
+    "RangeValidator",
+    "ChoiceValidator",
+    "TypeValidator",
+    "config_field",
+    "BaseConfig",
+    "ConfigManager",
+    "config_manager",
+    "get_config_dir",
+    "load_toml_config",
+    "redact_config",
+    "clear_config_cache",
+    "add_sensitive_key",
+    "remove_sensitive_key",
+    "load_config",
+    "start_watching",
+    "stop_watching",
+    "WATCHDOG_AVAILABLE",
+]
+
+WATCHDOG_AVAILABLE = WATCHDOG_AVAILABLE
+
+
 def get_config_dir() -> Path:
     """获取项目配置目录路径（向后兼容）。"""
     return config_manager.get_config_dir()
+
+
+def start_watching() -> None:
+    """启动配置文件变更监听（便捷函数）。"""
+    config_manager.start_watching()
+
+
+def stop_watching() -> None:
+    """停止配置文件变更监听（便捷函数）。"""
+    config_manager.stop_watching()
 
 
 def load_toml_config(config_filename: str) -> dict[str, Any]:

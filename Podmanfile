@@ -1,0 +1,103 @@
+# ============================================
+# DeepResearch Python API 服务 - 多阶段构建
+# ============================================
+#
+# 多平台构建示例（使用 buildx）:
+#   # Linux amd64 + arm64 双架构构建
+#   podman build --platform linux/amd64,linux/arm64 -t deepresearch:latest .
+#
+#   # 使用 buildx 进行多平台构建并推送到仓库
+#   docker buildx build --platform linux/amd64,linux/arm64 -t your-registry/deepresearch:latest --push .
+#
+#   # 单平台构建（默认）
+#   podman build -t deepresearch:latest .
+# ============================================
+
+# ============================================
+# 阶段 1: 基础构建 - 安装依赖
+# ============================================
+FROM python:3.14-slim AS base
+
+LABEL org.opencontainers.image.title="DeepResearch Base Image"
+LABEL org.opencontainers.image.description="Base image for DeepResearch Python deep research framework"
+LABEL org.opencontainers.image.source="https://github.com/daoCollective/DeepResearch"
+LABEL org.opencontainers.image.version="1.1.1"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
+
+WORKDIR /app
+
+# 设置 pip 镜像（中国区域加速）
+ENV PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+ENV PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn
+
+# 安装系统依赖
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        curl \
+        git \
+    && rm -rf /var/lib/apt/lists/*
+
+# 复制依赖文件
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
+
+# 安装 Python 依赖
+RUN pip install --no-cache-dir -e . \
+    && pip install --no-cache-dir fastapi uvicorn
+
+# ============================================
+# 阶段 2: 生产阶段 - 运行 API 服务
+# ============================================
+FROM python:3.14-slim AS production
+
+LABEL maintainer="DeepResearch Team"
+LABEL description="DeepResearch Python API Service - Autonomous deep research agent"
+LABEL version="1.1.1"
+LABEL org.opencontainers.image.title="DeepResearch Production"
+LABEL org.opencontainers.image.description="Production Docker image for DeepResearch FastAPI service"
+LABEL org.opencontainers.image.version="1.1.1"
+
+WORKDIR /app
+
+# 设置 pip 镜像
+ENV PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+ENV PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn
+
+# 安装系统依赖
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建非 root 用户
+RUN addgroup --system appgroup && adduser --system appuser --ingroup appgroup
+
+# 复制已安装的依赖从 base 阶段
+COPY --from=base /usr/local/lib/python3.14/site-packages /usr/local/lib/python3.14/site-packages
+COPY --from=base /app/src /app/src
+
+# 复制配置文件
+COPY config/ ./config/
+
+# 复制入口点
+RUN mkdir -p /app/logs \
+    && chown -R appuser:appgroup /app
+
+USER appuser
+
+# Expose API port
+EXPOSE 8000
+
+# 环境变量
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV DEEPRESEARCH_HOST=0.0.0.0
+ENV DEEPRESEARCH_PORT=8000
+ENV TZ=Asia/Shanghai
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl --fail http://localhost:8000/api/v1/health || exit 1
+
+# 启动命令
+CMD ["uvicorn", "deepresearch.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

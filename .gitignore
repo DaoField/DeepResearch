@@ -11,3 +11,4 @@ paper_cache/
 _version.py
 .ruff_cache/
 .coverage
+.config/

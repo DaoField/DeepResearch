@@ -1,0 +1,157 @@
+version: "3.8"
+
+# ============================================================
+# DeepResearch Podman Compose 配置文件
+# 支持多环境：development / production
+#
+# 使用方式：
+#   开发环境: podman-compose --profile development up -d deepresearch-dev
+#   生产环境: podman-compose --profile production up -d
+#   全部服务: podman-compose --profile development --profile production up
+# ============================================================
+
+# 定义网络 - 实现服务间网络隔离
+networks:
+  deepresearch-network:
+    driver: bridge
+    name: deepresearch-network
+
+# 定义卷 - 持久化日志和配置数据
+volumes:
+  deepresearch-logs:
+    name: deepresearch-logs
+  deepresearch-config:
+    name: deepresearch-config
+
+services:
+
+  # ============================================================
+  # 开发环境服务 (Development Profile)
+  # 使用源码挂载，支持代码热重载
+  # 启动命令: podman-compose --profile development up -d deepresearch-dev
+  # ============================================================
+  deepresearch-dev:
+    profiles: ["development"]
+    container_name: deepresearch-dev
+
+    # 使用 Python 3.14 镜像
+    image: python:3.14-slim
+
+    # 工作目录
+    working_dir: /app
+
+    # 源码卷挂载 - 实现代码热更新
+    volumes:
+      - ./:/app                              # 挂载整个项目目录
+      - /app/__pycache__                     # 排除 pycache
+      - /app/src/deepresearch.egg-info       # 排除 egg-info
+
+    # 端口映射 - FastAPI 默认端口
+    ports:
+      - "8000:8000"
+
+    # 环境变量配置 - 使用清华 PyPI 镜像加速
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+      - PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn
+      - DEEPRESEARCH_HOST=0.0.0.0
+      - DEEPRESEARCH_PORT=8000
+      - TZ=Asia/Shanghai
+    env_file:
+      - .env.development                      # 从开发环境变量文件加载
+
+    # 资源限制 - 开发环境相对宽松
+    deploy:
+      resources:
+        limits:
+          memory: 2G                          # 内存限制 2GB（研究任务需要更多内存）
+          cpus: "2.0"                         # CPU 使用率限制为 200%
+        reservations:
+          memory: 512M                        # 保证最低内存 512MB
+
+    # 重启策略 - 开发环境手动管理为主
+    restart: "no"
+
+    # 网络配置
+    networks:
+      - deepresearch-network
+
+    # 初始化命令 - 安装依赖后启动
+    command: >
+      sh -c "
+        pip install --no-cache-dir -e . &&
+        pip install --no-cache-dir fastapi uvicorn &&
+        uvicorn deepresearch.api.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+
+  # ============================================================
+  # 生产环境服务 (Production Profile)
+  # 使用预构建镜像，优化性能和安全性
+  # 启动命令: podman-compose --profile production up -d deepresearch-api
+  # ============================================================
+  deepresearch-api:
+    profiles: ["production"]
+    container_name: deepresearch-api
+    image: deepresearch:latest
+    build:
+      context: .
+      dockerfile: Podmanfile
+      target: production
+
+    # 端口映射 - 将容器 8000 端口映射到主机 8000 端口
+    ports:
+      - "8000:8000"
+
+    # 卷挂载 - 日志和配置目录持久化存储
+    volumes:
+      - deepresearch-logs:/app/logs
+      - deepresearch-config:/app/config:ro
+
+    # 环境变量配置
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - DEEPRESEARCH_HOST=0.0.0.0
+      - DEEPRESEARCH_PORT=8000
+      - TZ=Asia/Shanghai
+    env_file:
+      - .env.production                       # 生产环境变量文件
+
+    # 日志驱动配置 - 防止日志文件无限增长
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"                       # 单个日志文件最大 10MB
+        max-file: "3"                          # 最多保留 3 个日志文件轮转
+
+    # 资源限制 - DeepResearch 需要较多内存进行研究任务
+    deploy:
+      resources:
+        limits:
+          memory: 4G                          # 内存限制 4GB
+          cpus: "2.0"                         # CPU 使用率限制为 200%
+        reservations:
+          memory: 1G                          # 保证最低内存 1GB
+
+    # 重启策略 - 除非手动停止，否则自动重启
+    restart: unless-stopped
+
+    # 优雅停止配置 - 给予服务足够时间完成请求处理
+    stop_grace_period: 30s
+
+    # 网络配置 - 加入自定义网络实现隔离
+    networks:
+      - deepresearch-network
+
+    # 健康检查配置
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/api/v1/health"]
+      interval: 30s                           # 检查间隔 30 秒
+      timeout: 10s                            # 超时时间 10 秒
+      retries: 3                              # 连续失败 3 次标记为不健康
+      start_period: 15s                       # 启动后等待 15 秒再开始检查
+
+    # 安全配置 - 以非 root 用户运行
+    user: "appuser:appgroup"

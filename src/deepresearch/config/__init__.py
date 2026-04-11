@@ -30,6 +30,7 @@ from .base import (
     RangeValidator,
     TypeValidator,
     ValidationError,
+    WATCHDOG_AVAILABLE,
     add_sensitive_key,
     clear_config_cache,
     config_manager,
@@ -40,6 +41,8 @@ from .base import (
     load_toml_config,
     redact_config,
     remove_sensitive_key,
+    start_watching,
+    stop_watching,
 )
 
 __all__ = [
@@ -64,6 +67,10 @@ __all__ = [
     "config_manager",
     # 便捷函数
     "load_config",
+    # 配置热加载
+    "start_watching",
+    "stop_watching",
+    "WATCHDOG_AVAILABLE",
     # 向后兼容
     "get_config_dir",
     "load_toml_config",

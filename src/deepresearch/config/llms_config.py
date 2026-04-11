@@ -74,6 +74,11 @@ def reload_llm_configs() -> None:
     _llm_configs_cache = None
 
 
+def _on_config_reload() -> None:
+    """配置重新加载回调（供 ConfigManager 调用）。"""
+    reload_llm_configs()
+
+
 _llm_configs_cache: dict[str, BaseLLMConfig] | None = None
 
 
@@ -112,3 +117,8 @@ def get_evaluate_llm() -> BaseLLMConfig:
 
 def get_report_llm() -> BaseLLMConfig:
     return get_llm_configs()["report"]
+
+
+# 在模块加载完成后注册重新加载回调
+from .base import config_manager
+config_manager.register_reload_callback(_on_config_reload)
